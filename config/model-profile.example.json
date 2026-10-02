@@ -1,0 +1,11 @@
+{
+  "profile_id": "profile-demo-a",
+  "base_url": "http://127.0.0.1:4096",
+  "provider_id": "REPLACE_WITH_VERIFIED_PROVIDER_ID",
+  "model_id": "REPLACE_WITH_VERIFIED_MODEL_ID",
+  "expected_runtime_version": "REPLACE_WITH_INSTALLED_OPENCODE_VERSION",
+  "agent": "iris_diagnosis",
+  "timeout_seconds": 30.0,
+  "max_evidence_bytes": 16384,
+  "max_prompt_bytes": 32768
+}

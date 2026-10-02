@@ -1,0 +1,28 @@
+{
+  "schema_version": "diagnosis-request.v1",
+  "tenant_id": "team-iris",
+  "project_id": "project-demo",
+  "deployment_id": "synthetic-recovered-only",
+  "attempt_id": "attempt-evaluation-1",
+  "trigger": "user_requested",
+  "context": {
+    "reported_stage": "runtime",
+    "deployment_status": "succeeded",
+    "exit_code": 0
+  },
+  "logs": [
+    {
+      "chunk_id": "chunk-01",
+      "source_id": "app-instance-01.stderr",
+      "stage": "runtime",
+      "stream": "stderr",
+      "source_line_start": 41,
+      "captured_at": "2026-10-01T01:00:00Z",
+      "is_complete": true,
+      "text": "ERROR temporary connection failure; retrying\nINFO Connection established on retry\nINFO Readiness check passed: HTTP 200\nINFO Rollout completed successfully"
+    }
+  ],
+  "model_profile_id": "profile-demo-a",
+  "model_settings_version": "settings-7",
+  "previous_diagnosis_id": null
+}

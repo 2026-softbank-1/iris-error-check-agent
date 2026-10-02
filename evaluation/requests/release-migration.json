@@ -1,0 +1,28 @@
+{
+  "schema_version": "diagnosis-request.v1",
+  "tenant_id": "team-iris",
+  "project_id": "project-demo",
+  "deployment_id": "synthetic-release-migration",
+  "attempt_id": "attempt-evaluation-1",
+  "trigger": "deployment_failed",
+  "context": {
+    "reported_stage": "release",
+    "deployment_status": "failed",
+    "exit_code": 1
+  },
+  "logs": [
+    {
+      "chunk_id": "chunk-01",
+      "source_id": "app-instance-01.stderr",
+      "stage": "release",
+      "stream": "stderr",
+      "source_line_start": 41,
+      "captured_at": "2026-10-01T01:00:00Z",
+      "is_complete": true,
+      "text": "ERROR migration failed: duplicate column name: customer_id\nERROR Release migration aborted; deploy step was not started"
+    }
+  ],
+  "model_profile_id": "profile-demo-a",
+  "model_settings_version": "settings-7",
+  "previous_diagnosis_id": null
+}

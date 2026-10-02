@@ -1,0 +1,38 @@
+{
+  "schema_version": "diagnosis-request.v1",
+  "tenant_id": "team-iris",
+  "project_id": "project-demo",
+  "deployment_id": "synthetic-health-check-multi-source",
+  "attempt_id": "attempt-evaluation-1",
+  "trigger": "deployment_failed",
+  "context": {
+    "reported_stage": "deploy",
+    "deployment_status": "failed",
+    "exit_code": 1
+  },
+  "logs": [
+    {
+      "chunk_id": "chunk-01",
+      "source_id": "app-instance-01.stderr",
+      "stage": "deploy",
+      "stream": "stderr",
+      "source_line_start": 41,
+      "captured_at": "2026-10-01T01:00:00Z",
+      "is_complete": true,
+      "text": "INFO Application started\nINFO Listening on port 8080"
+    },
+    {
+      "chunk_id": "chunk-02",
+      "source_id": "deployment-controller",
+      "stage": "deploy",
+      "stream": "stderr",
+      "source_line_start": 1,
+      "captured_at": "2026-10-01T01:00:00Z",
+      "is_complete": true,
+      "text": "Readiness probe failed: HTTP probe returned status code 503\nERROR Rollout failed: progress deadline exceeded; no ready replicas"
+    }
+  ],
+  "model_profile_id": "profile-demo-a",
+  "model_settings_version": "settings-7",
+  "previous_diagnosis_id": null
+}

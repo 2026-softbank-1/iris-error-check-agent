@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": "deny",
+  "share": "disabled",
+  "autoupdate": false,
+  "snapshot": false,
+  "compaction": {"auto": false, "prune": false},
+  "agent": {
+    "iris_diagnosis": {
+      "description": "Analyze only the supplied IRIS deployment log data",
+      "mode": "primary",
+      "permission": "deny",
+      "steps": 1
+    },
+    "title": {"disable": true},
+    "summary": {"disable": true}
+  }
+}
+

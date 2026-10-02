@@ -1,0 +1,20 @@
+{
+  "dataset_kind": "synthetic_development_only",
+  "cases": [
+    {
+      "id": "configuration",
+      "request": "../examples/configuration.request.json",
+      "expected_status": "diagnosed"
+    },
+    {
+      "id": "exit-code-only",
+      "request": "../examples/exit-code-only.request.json",
+      "expected_status": "insufficient_evidence"
+    },
+    {
+      "id": "no-failure-evidence",
+      "request": "../examples/no-failure-evidence.request.json",
+      "expected_status": "no_failure_evidence"
+    }
+  ]
+}

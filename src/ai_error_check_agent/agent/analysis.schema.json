@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IRIS Diagnosis Analysis v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "analysis_status",
+    "summary",
+    "observations",
+    "hypotheses",
+    "next_checks",
+    "missing_information",
+    "limitations",
+    "remediation"
+  ],
+  "properties": {
+    "analysis_status": {
+      "type": "string",
+      "enum": [
+        "diagnosed",
+        "insufficient_evidence",
+        "no_failure_evidence"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+    },
+    "observations": {
+      "type": "array",
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/hypothesis"
+      }
+    },
+    "next_checks": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "missing_information": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/missing"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "plans"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "needs_more_evidence",
+            "not_needed"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        },
+        "plans": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/remediation_plan"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^EV[0-9]{6}$"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/evidence_id"
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^O[1-6]$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "failure",
+            "context"
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/text"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_ids"
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "support_level",
+        "statement",
+        "observation_ids",
+        "evidence_ids",
+        "counter_evidence_ids",
+        "uncertainty"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^H[1-3]$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "configuration",
+            "dependency",
+            "build_compile",
+            "start_command",
+            "port_binding",
+            "external_connection",
+            "access_permission",
+            "resource",
+            "health_check",
+            "release_migration",
+            "other"
+          ]
+        },
+        "support_level": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "supported"
+          ]
+        },
+        "statement": {
+          "$ref": "#/$defs/text"
+        },
+        "observation_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^O[1-6]$"
+          }
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_ids"
+        },
+        "counter_evidence_ids": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/evidence_id"
+          }
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "target",
+        "method",
+        "purpose",
+        "hypothesis_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^C[1-5]$"
+        },
+        "target": {
+          "$ref": "#/$defs/text"
+        },
+        "method": {
+          "$ref": "#/$defs/text"
+        },
+        "purpose": {
+          "$ref": "#/$defs/text"
+        },
+        "hypothesis_ids": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^H[1-3]$"
+          }
+        }
+      }
+    },
+    "missing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_data",
+        "reason"
+      ],
+      "properties": {
+        "requested_data": {
+          "$ref": "#/$defs/text"
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "remediation_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "hypothesis_ids",
+        "evidence_ids",
+        "apply_when",
+        "changes",
+        "verification",
+        "rollback",
+        "risks"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^R[1-2]$"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "hypothesis_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "pattern": "^H[1-3]$"
+          },
+          "uniqueItems": true
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_ids"
+        },
+        "apply_when": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/remediation_change"
+          }
+        },
+        "verification": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "instruction",
+              "expected_result"
+            ],
+            "properties": {
+              "instruction": {
+                "$ref": "#/$defs/text"
+              },
+              "expected_result": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
+        },
+        "rollback": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "risks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "remediation_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "target",
+        "target_known",
+        "instruction",
+        "language",
+        "snippet_kind",
+        "snippet",
+        "placeholders"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "code",
+            "configuration",
+            "command"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "target_known": {
+          "type": "boolean"
+        },
+        "instruction": {
+          "$ref": "#/$defs/text"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "python",
+            "typescript",
+            "javascript",
+            "json",
+            "yaml",
+            "dotenv",
+            "bash",
+            "powershell",
+            "cmd",
+            "sql",
+            "text"
+          ]
+        },
+        "snippet_kind": {
+          "type": "string",
+          "enum": [
+            "template"
+          ]
+        },
+        "snippet": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "placeholders": {
+          "type": "array",
+          "description": "Declare each {{NAME}} used in THIS change's snippet exactly once. No names from other fields or changes. Use [] when the snippet has no placeholders.",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Exact NAME inside {{NAME}} in the same snippet, without braces.",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "description": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

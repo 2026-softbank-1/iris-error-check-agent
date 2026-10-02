@@ -1,0 +1,15 @@
+{
+  "dataset_kind": "synthetic_development_only",
+  "cases": [
+    {
+      "id": "killed-exit-only",
+      "request": "requests/killed-exit-only.json",
+      "expected_status": "insufficient_evidence"
+    },
+    {
+      "id": "expected-test-error",
+      "request": "requests/expected-test-error.json",
+      "expected_status": "no_failure_evidence"
+    }
+  ]
+}
