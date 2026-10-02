@@ -1,4 +1,4 @@
-"""Single-request OpenAI Responses adapter; no OpenCode process required."""
+"""Single-request OpenAI-compatible Responses adapter; no OpenCode process required."""
 
 import asyncio
 import json
@@ -19,7 +19,7 @@ from .runtime import ModelResponse
 
 class DirectModelProfile(StrictModel):
     profile_id: Identifier
-    provider_id: Literal["openai"] = "openai"
+    provider_id: Literal["openai", "sakana"] = "openai"
     model_id: Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")]
     base_url: str = "https://api.openai.com/v1"
     timeout_seconds: Annotated[float, Field(gt=0, le=300)] = 60.0
@@ -30,9 +30,11 @@ class DirectModelProfile(StrictModel):
 
     @model_validator(mode="after")
     def official_endpoint(self):
-        # Never send an OpenAI credential to a configured third-party host.
-        if self.base_url.rstrip("/") != "https://api.openai.com/v1":
-            raise ValueError("only the official OpenAI API endpoint is supported")
+        endpoints = {"openai": "https://api.openai.com/v1", "sakana": "https://api.sakana.ai/v1"}
+        if self.base_url.rstrip("/") != endpoints[self.provider_id]:
+            raise ValueError("provider must use its official API endpoint")
+        if self.provider_id == "sakana" and self.reasoning_effort not in {"high", "xhigh", "max"}:
+            raise ValueError("Sakana reasoning effort must be high, xhigh or max")
         return self
 
 
@@ -50,21 +52,31 @@ def load_direct_settings(
     def value(name, default=""):
         return str(env.get(name, values.get(name) or default)).strip()
 
-    api_key = value("LLM_API_KEY")
+    provider = value("LLM_PROVIDER", "openai").lower()
+    api_key = (
+        value("SAKANA_API_KEY")
+        if provider == "sakana"
+        else value("OPENAI_API_KEY") or value("LLM_API_KEY")
+    )
     model = value("LLM_MODEL")
     if not api_key or not model:
-        raise DiagnosisError("MISSING_CONFIG", ".env의 LLM_API_KEY와 LLM_MODEL을 입력하세요.")
+        raise DiagnosisError("MISSING_CONFIG", "모델과 해당 제공자의 API 키를 설정하세요.")
     if not api_key.isascii() or any(character.isspace() for character in api_key):
-        raise DiagnosisError("INVALID_CONFIG", "LLM_API_KEY에 공백 또는 잘못된 문자가 있습니다.")
+        raise DiagnosisError("INVALID_CONFIG", "모델 API 키에 공백 또는 잘못된 문자가 있습니다.")
     try:
         profile = DirectModelProfile(
             profile_id=profile_id,
-            provider_id=value("LLM_PROVIDER", "openai").lower(),
+            provider_id=provider,
             model_id=model,
-            base_url=value("LLM_BASE_URL", "https://api.openai.com/v1"),
+            base_url=value(
+                "LLM_BASE_URL",
+                "https://api.sakana.ai/v1" if provider == "sakana" else "https://api.openai.com/v1",
+            ),
             timeout_seconds=float(value("LLM_TIMEOUT_SECONDS", "60")),
             max_output_tokens=int(value("LLM_MAX_OUTPUT_TOKENS", "4096")),
-            reasoning_effort=value("LLM_REASONING_EFFORT", "low"),
+            reasoning_effort=value(
+                "LLM_REASONING_EFFORT", "high" if provider == "sakana" else "low"
+            ),
         )
     except (ValidationError, ValueError):
         raise DiagnosisError(
@@ -99,7 +111,7 @@ class OpenAIResponsesRuntime:
         )
         self.message_submissions = 0
         self.provider_call_count = None
-        self.runtime_version = "openai-responses.v1"
+        self.runtime_version = f"{profile.provider_id}-responses.v1"
         self.cleanup_status = "not_needed"
         self.abort_confirmed = None
         self.reusable = True
@@ -144,11 +156,11 @@ class OpenAIResponsesRuntime:
             async with self.client.stream("POST", "responses", json=payload) as response:
                 if response.status_code in {401, 403}:
                     raise DiagnosisError(
-                        "MODEL_AUTH_ERROR", "OpenAI API 키 또는 모델 접근 권한을 확인하세요."
+                        "MODEL_AUTH_ERROR", "LLM API 키 또는 모델 접근 권한을 확인하세요."
                     )
                 if response.status_code == 429:
                     raise DiagnosisError(
-                        "MODEL_RATE_LIMIT", "OpenAI API 사용 한도·결제 잔액·요청 제한을 확인하세요."
+                        "MODEL_RATE_LIMIT", "LLM API 사용 한도·결제 잔액·요청 제한을 확인하세요."
                     )
                 if response.status_code == 404:
                     raise DiagnosisError(
@@ -157,10 +169,10 @@ class OpenAIResponsesRuntime:
                 if response.status_code == 400:
                     raise DiagnosisError(
                         "MODEL_REQUEST_ERROR",
-                        "OpenAI가 요청 규격을 거절했습니다. 모델·스키마 설정을 확인하세요.",
+                        "모델 제공자가 요청 규격을 거절했습니다. 모델·스키마 설정을 확인하세요.",
                     )
                 if response.status_code != 200:
-                    raise DiagnosisError("MODEL_ERROR", "OpenAI API 요청이 실패했습니다.")
+                    raise DiagnosisError("MODEL_ERROR", "LLM API 요청이 실패했습니다.")
                 body = bytearray()
                 async for chunk in response.aiter_bytes():
                     body.extend(chunk)
@@ -176,13 +188,11 @@ class OpenAIResponsesRuntime:
             self.reusable = False
             if isinstance(exc, asyncio.CancelledError):
                 raise
-            raise DiagnosisError("MODEL_TIMEOUT", "OpenAI 응답 제한시간을 초과했습니다.") from None
+            raise DiagnosisError("MODEL_TIMEOUT", "LLM 응답 제한시간을 초과했습니다.") from None
         except httpx.HTTPError:
-            raise DiagnosisError(
-                "MODEL_CONNECTION_ERROR", "OpenAI API 연결에 실패했습니다."
-            ) from None
+            raise DiagnosisError("MODEL_CONNECTION_ERROR", "LLM API 연결에 실패했습니다.") from None
         except (ValueError, RecursionError):
-            raise DiagnosisError("MODEL_ERROR", "OpenAI 응답 JSON을 읽을 수 없습니다.") from None
+            raise DiagnosisError("MODEL_ERROR", "LLM 응답 JSON을 읽을 수 없습니다.") from None
 
     def _parse(self, data) -> ModelResponse:
         if not isinstance(data, dict) or data.get("status") != "completed" or data.get("error"):
@@ -192,7 +202,17 @@ class OpenAIResponsesRuntime:
             )
         reported = data.get("model")
         model_pattern = re.escape(self.profile.model_id) + r"(?:-\d{4}-\d{2}-\d{2})?"
-        if not isinstance(reported, str) or not re.fullmatch(model_pattern, reported):
+        aliases = {
+            "fugu-ultra": "fugu-ultra-v2.0",
+            "fugu-max": "fugu-max-v1.0",
+            "sakana-namazu": "sakana-namazu-v1.0",
+        }
+        matches = isinstance(reported, str) and (
+            re.fullmatch(model_pattern, reported)
+            if self.profile.provider_id == "openai"
+            else reported in {self.profile.model_id, aliases.get(self.profile.model_id)}
+        )
+        if not matches:
             raise DiagnosisError("MODEL_MISMATCH", "요청 모델과 응답 모델이 다릅니다.")
         output = data.get("output")
         if not isinstance(output, list):
@@ -234,7 +254,7 @@ class OpenAIResponsesRuntime:
         return ModelResponse(
             texts[0],
             {
-                "reported_model": {"provider_id": "openai", "model_id": reported},
+                "reported_model": {"provider_id": self.profile.provider_id, "model_id": reported},
                 "verification": "reported",
                 "tokens": {
                     "input": count(usage.get("input_tokens")),

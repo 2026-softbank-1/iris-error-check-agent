@@ -52,7 +52,7 @@ class SourceFile(StrictModel):
 
 
 class SourceSnapshot(StrictModel):
-    commit_sha: Annotated[str, Field(pattern=r"^[0-9a-fA-F]{40}$")]
+    commit_sha: Annotated[str, Field(pattern=r"^[0-9a-fA-F]{40}$")] | None = None
     files: Annotated[list[SourceFile], Field(min_length=1, max_length=20)]
 
     @model_validator(mode="after")
@@ -128,6 +128,8 @@ class SourceAnalysisResult(StrictModel):
     findings: list[CodeFinding]
     limitations: list[str]
     error: dict | None
+    archive_sha256: str | None = None
+    root_directory: str | None = None
 
 
 class DiagnoseAPIResult(StrictModel):
@@ -144,3 +146,4 @@ class DiagnoseAPIResult(StrictModel):
     input_limitations: list[str]
     execution: dict
     source_analysis: SourceAnalysisResult
+    backend_context: dict | None = None

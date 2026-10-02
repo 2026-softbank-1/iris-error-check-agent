@@ -2,9 +2,17 @@
 
 IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 → 다음 확인 → 상세 해결안 → 한계**를 반환하는 오류 진단 프로젝트입니다.
 
-현재 산출물은 **진단 코어, 로컬 CLI, `POST /diagnose` API**입니다. `.env`를 읽어 OpenAI Responses API를 직접 호출합니다. API는 먼저 로그를 분석하고, 필요할 때 **백엔드가 요청에 포함한 소스 파일의 관련 범위**를 선택해 재분석합니다. 백엔드 서비스와의 실제 연결, 사용자별 권한 확인, 비동기 작업 DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
+현재 산출물은 **진단 코어, 로컬 CLI, `POST /diagnose` API**입니다. API는 `.env`를 읽어 OpenAI 직접 호출 또는 OpenCode 실행 방식을 선택합니다. 먼저 로그를 분석하고, 필요할 때 **백엔드가 제공한 S3 `.tar.gz` 또는 직접 전달한 소스 파일**에서 관련 범위를 선택해 재분석합니다. 본 서비스의 실제 S3·로그 연결, 사용자별 권한 확인, 비동기 작업 DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
 
-## 진단 API 실행 (v0.3)
+## 진단 API 실행 (v0.5.0)
+
+OpenCode 화면과 서비스 API에서 같은 모델 목록을 선택할 수 있습니다. 기존 GPT 설정은 유지하고, Sakana를 쓰려면 `.env`에 `SAKANA_API_KEY`를 추가합니다.
+
+```bat
+run_opencode.cmd
+```
+
+OpenCode에서 `iris_diagnosis` 에이전트의 `/models` 메뉴로 GPT 또는 Sakana 모델을 고릅니다. 서비스 연동은 `GET /models`로 목록을 조회하고 `POST /diagnose?model=sakana/fugu`로 선택값을 전달합니다. 선택값이 없으면 기존 `.env` 모델을 사용합니다. 키 없는 모델은 API 목록에서 `available=false`이며 OpenCode 선택 목록에는 나타나지 않습니다. 대화형 화면과 검증된 서비스 진단 절차의 차이, 프론트·백엔드 연결 예시는 [모델 선택 문서](docs/MODEL_SELECTION.md)를 참고하세요.
 
 기존 `.env`의 LLM 설정을 그대로 사용합니다. 의존성을 업데이트한 후 실행합니다.
 
@@ -14,15 +22,35 @@ IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 →
 run_api.cmd --dev
 ```
 
+OpenCode로 동일한 API를 실행하려면 Node.js/npm과 Git이 설치된 상태에서 다음 명령을 사용합니다. OpenCode 1.18.34는 프로젝트의 `.runtime` 폴더에 설치됩니다. 설치는 최초 한 번만 필요합니다.
+
+```bat
+install_opencode.cmd
+run_api.cmd --runtime opencode --dev
+```
+
+API가 전용 OpenCode 프로세스를 시작하고 종료 시 정리합니다. 기존 `.env`의 `LLM_API_KEY`, `LLM_MODEL`을 사용합니다. 자세한 내용은 [OpenCode 실행·검증 문서](docs/OPENCODE_INTEGRATION.md)를 참고하세요.
+
+Docker에서는 API와 OpenCode를 하나의 Linux 이미지로 실행할 수 있습니다. `.env`의 `AGENT_API_KEY`를 별도의 ASCII 32자 이상 키로 설정한 뒤 실행합니다.
+
+```bat
+docker build -t iris-error-check-agent:0.5.0 .
+docker run --rm --name iris-error-check-agent --env-file .env -e AGENT_RUNTIME=opencode -p 127.0.0.1:8001:8001 --stop-timeout 280 iris-error-check-agent:0.5.0
+```
+
+이미지에는 `.env`를 포함하지 않습니다. 자세한 구성과 직접 호출 모드 전환은 [Docker 실행 문서](docs/DOCKER.md)를 참고하세요.
+
 개발 모드는 `127.0.0.1:8001`에서 실행됩니다. [Swagger UI](http://127.0.0.1:8001/docs)에서 요청 규격을 확인할 수 있습니다. 다른 CMD 창에서 합성 로그·소스 샘플을 호출합니다. **실제 LLM 사용량이 발생합니다.**
 
 ```bat
-curl.exe -X POST http://127.0.0.1:8001/diagnose -H "Content-Type: application/json" --data-binary "@examples/api-source.request.json"
+curl.exe -X POST http://127.0.0.1:8001/diagnose -H "Content-Type: application/json" --data-binary "@examples/backend-log-only.request.json"
 ```
 
 서버 모드에서는 `.env`에 별도의 `AGENT_API_KEY`(공백 없는 ASCII 32자 이상)를 설정하고 `run_api.cmd`로 실행합니다. 호출자는 `X-API-Key` 헤더로 인증합니다. `--dev`는 루프백 전용이며, 운영 백엔드용 키를 프론트엔드 번들에 넣지 않습니다.
 
-API 결과는 `diagnosis-result.v3`, 기존 CLI 결과는 `diagnosis-result.v2`입니다. API 요청은 기존 입력을 `diagnosis`에 넣고 선택적으로 `source_snapshot`을 추가합니다. [API·소스 분석 개발 문서](docs/API_SOURCE_ANALYSIS.md)에 전체 흐름, 제한, 오류 처리, 백엔드 연결 지점을 정리했습니다.
+API 결과는 `diagnosis-result.v3`, 기존 CLI 결과는 `diagnosis-result.v2`입니다. API는 **`success/message/data` 전체 JSON**, `data` 내부 객체, 기존 `diagnosis/source_snapshot` 형식을 모두 받습니다. 새 입력 형식과 S3 규격은 [백엔드 JSON 연동 문서](docs/BACKEND_JSON_V04.md), 기존 파일 직접 전달 방식은 [API·소스 분석 개발 문서](docs/API_SOURCE_ANALYSIS.md)를 참고하세요.
+
+`examples/backend-envelope.request.json`은 합의 중인 JSON 전체 예시입니다. `source.downloadUrl`과 `expiresAt`을 실제 S3 presigned URL과 만료 시각으로 바꾸면 코드 분석이 필요할 때만 다운로드합니다. 소스 없이 테스트할 때는 위의 `backend-log-only.request.json`을 사용합니다. Git 커밋 SHA는 선택 항목이며, `AGENT_SOURCE_ALLOWED_HOSTS`에 허용할 S3 버킷 호스트를 지정할 수 있습니다.
 
 ## CMD에서 바로 실행
 
@@ -60,7 +88,7 @@ LLM_BASE_URL=https://api.openai.com/v1
 
 선택 설정은 `LLM_TIMEOUT_SECONDS=60`, `LLM_MAX_OUTPUT_TOKENS=4096`, `LLM_REASONING_EFFORT=low`입니다. 출력 토큰 한도에는 추론 토큰도 포함됩니다. 현재 디렉터리의 `.env`를 읽으며 다른 파일은 `--env-file`로 지정합니다. 동일 이름의 프로세스 환경변수가 있으면 그 값이 우선합니다. 쉘 명령 실행이나 `${...}` 확장은 하지 않습니다.
 
-API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않습니다. 현재 직접 호출은 공식 OpenAI 주소를 지원합니다. 호출 실패 시 `error.code`를 확인하세요. `MODEL_AUTH_ERROR`는 키·권한, `MODEL_NOT_FOUND`는 모델 ID·접근 권한, `MODEL_RATE_LIMIT`는 사용량·결제·요청 제한 확인이 필요합니다.
+API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않습니다. 직접 호출은 공식 OpenAI 및 Sakana API 주소를 지원합니다. 호출 실패 시 `error.code`를 확인하세요. `MODEL_AUTH_ERROR`는 키·권한, `MODEL_NOT_FOUND`는 모델 ID·접근 권한, `MODEL_RATE_LIMIT`는 사용량·결제·요청 제한 확인이 필요합니다.
 
 모델 사용량이 발생하며 자동 재시도는 하지 않습니다. [OpenAI 모델 문서](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [구조화 출력 문서](https://developers.openai.com/api/docs/guides/structured-outputs)를 기준으로 구현했습니다.
 
@@ -80,7 +108,7 @@ API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않�
 - 실제 모델 메타데이터·사용량·프롬프트 해시·입력 스냅샷 해시 기록
 - 외부 모델을 호출하지 않는 HTTP 계약 테스트와 개발용 가상 사례
 
-가상 입력으로 연결을 확인하는 것과 실제 장애 정확도를 평가하는 것은 별개입니다. 자동 테스트는 HTTP 계약·근거 검증·오류 처리를 확인하며, OpenCode 실제 연동과 실제 장애 성능 평가는 별도로 수행해야 합니다.
+가상 입력으로 연결을 확인하는 것과 실제 장애 정확도를 평가하는 것은 별개입니다. 자동 테스트는 HTTP 계약·근거 검증·오류 처리를 확인합니다. OpenCode 실제 연동 검증의 범위와 결과는 [검증 보고서](docs/OPENCODE_TEST_REPORT_2026-10-02.md)에 기록하며, 실제 장애 성능 평가는 별도로 수행해야 합니다.
 
 ## 설치
 
@@ -109,7 +137,7 @@ Linux/macOS에서는 `.venv/bin/python`을 사용합니다. 패키지 이름은 
 
 ## 선택: 기존 OpenCode 실행기 연결
 
-이 절은 명시적으로 `--profile`을 지정할 때만 적용됩니다. 기본 CMD 실행에는 필요하지 않습니다.
+이 절은 기존 CLI에서 직접 관리하는 OpenCode 서버를 `--profile`로 연결할 때만 적용됩니다. 최신 API는 위의 `run_api.cmd --runtime opencode`로 실행하면 별도 프로필 없이 서버를 자동 관리합니다.
 
 1. 팀에서 사용할 OpenCode 버전을 설치·고정하고 공급자 인증을 설정합니다. 모델 API 키는 OpenCode 실행 환경에서 관리합니다.
 2. 개인 설정·프로젝트 소스·스킬·플러그인이 없는 전용 실행 환경을 준비합니다. `config/opencode.json`을 적용하고 `127.0.0.1:4096`에서 `opencode serve`를 실행합니다. 상위 디렉터리나 전역 설정이 병합되지 않는지 확인합니다. 단순히 `OPENCODE_CONFIG`만 지정해도 격리가 완료되는 것은 아닙니다.

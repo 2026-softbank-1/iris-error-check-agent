@@ -48,8 +48,17 @@ class FakeOpenCode:
             data = {
                 "permission": "deny",
                 "share": "disabled",
+                "snapshot": False,
+                "autoupdate": False,
+                "compaction": {"auto": False, "prune": False},
                 "agent": {
-                    "iris_diagnosis": {"permission": self.permission, "mode": "primary", "steps": 1}
+                    "iris_diagnosis": {
+                        "permission": self.permission,
+                        "mode": "primary",
+                        "steps": 1,
+                    },
+                    "title": {"disable": True},
+                    "summary": {"disable": True},
                 },
             }
         elif path == "/experimental/tool/ids":

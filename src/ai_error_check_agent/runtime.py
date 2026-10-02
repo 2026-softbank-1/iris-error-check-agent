@@ -114,6 +114,7 @@ class OpenCodeRuntime:
             raise DiagnosisError("UNSAFE_RUNTIME", "실행 설정을 확인할 수 없습니다.")
         agents = config.get("agent", {})
         agent = agents.get(self.profile.agent) if isinstance(agents, dict) else None
+        compaction = config.get("compaction")
 
         def deny_all(permission):
             return permission == "deny" or permission == {"*": "deny"}
@@ -129,6 +130,15 @@ class OpenCodeRuntime:
             or config.get("mcp")
             or config.get("instructions")
             or config.get("share") != "disabled"
+            or config.get("snapshot") is not False
+            or config.get("autoupdate") is not False
+            or not isinstance(compaction, dict)
+            or compaction.get("auto") is not False
+            or compaction.get("prune") is not False
+            or any(
+                not isinstance(agents.get(name), dict) or agents[name].get("disable") is not True
+                for name in ("title", "summary")
+            )
         ):
             raise DiagnosisError(
                 "UNSAFE_RUNTIME", "전용 에이전트의 권한·외부 설정 조건을 만족하지 않습니다."

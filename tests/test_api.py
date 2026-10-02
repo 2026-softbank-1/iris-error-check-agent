@@ -11,6 +11,35 @@ from ai_error_check_agent.errors import DiagnosisError
 KEY = "test-agent-key-" + "0" * 32
 
 
+@pytest.mark.parametrize("failure", [None, "startup", "serving"])
+def test_managed_runtime_stops_in_asgi_lifespan(failure):
+    events = []
+
+    class Runtime:
+        def start(self):
+            events.append("start")
+            if failure == "startup":
+                raise RuntimeError("startup failed")
+
+        def stop(self):
+            events.append("stop")
+
+    app = create_app(lambda: None, dev=True, managed_runtime=Runtime())
+
+    async def run():
+        async with app.router.lifespan_context(app):
+            events.append("serving")
+            if failure == "serving":
+                raise RuntimeError("serving failed")
+
+    if failure:
+        with pytest.raises(RuntimeError, match=failure):
+            asyncio.run(run())
+    else:
+        asyncio.run(run())
+    assert events == (["start", "stop"] if failure == "startup" else ["start", "serving", "stop"])
+
+
 def send(app, method="POST", path="/diagnose", **kwargs):
     async def call():
         async with httpx.AsyncClient(
@@ -114,9 +143,13 @@ def test_schema_and_cors():
     assert "SourceSnapshot" in schema["components"]["schemas"]
     operation = schema["paths"]["/diagnose"]["post"]
     assert operation["security"] == [{"AgentAPIKey": []}]
-    assert operation["requestBody"]["content"]["application/json"]["schema"]["required"] == [
-        "diagnosis"
-    ]
+    choices = operation["requestBody"]["content"]["application/json"]["schema"]["anyOf"]
+    assert {item["$ref"].rsplit("/", 1)[-1] for item in choices} == {
+        "BackendEnvelope",
+        "BackendData",
+        "DiagnoseAPIRequest",
+    }
+    assert schema["components"]["schemas"]["DiagnoseAPIRequest"]["required"] == ["diagnosis"]
     assert send(app, "GET", "/healthz").status_code == 200
     for origin, status in [("http://localhost:3000", 200), ("https://bad.invalid", 400)]:
         response = send(

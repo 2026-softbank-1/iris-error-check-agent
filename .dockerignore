@@ -1,0 +1,17 @@
+# Allow only the files required to build the image.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!README.md
+!requirements.lock
+!src/
+!src/**
+**/__pycache__/**
+**/*.py[cod]
+**/*.egg-info/**
+**/.env
+**/.env.*
+**/*.local.json
+**/*.pem
+**/*.key

@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "message": "진단용 데이터 조회 완료",
+  "data": {
+    "projectId": "project-123",
+    "serviceId": "service-456",
+    "deploymentId": "deploy-789",
+    "attemptId": "attempt-1",
+    "deploymentStatus": "FAILED",
+    "failedStage": "runtime",
+    "exitCode": 1,
+    "logRange": {
+      "from": "2026-10-02T07:00:00Z",
+      "to": "2026-10-02T07:05:00Z",
+      "isComplete": true
+    },
+    "logs": [
+      {
+        "id": "log-001",
+        "timestamp": "2026-10-02T07:01:00Z",
+        "stage": "runtime",
+        "sourceId": "app-pod-001",
+        "stream": "stderr",
+        "sequence": 1,
+        "text": "ERROR Missing required configuration: DATABASE_URL"
+      }
+    ],
+    "source": {
+      "format": "tar.gz",
+      "downloadUrl": "<S3 presigned URL>",
+      "expiresAt": "2026-10-02T07:20:00Z",
+      "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "rootDirectory": "."
+    }
+  }
+}
