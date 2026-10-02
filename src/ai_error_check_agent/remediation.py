@@ -32,7 +32,7 @@ def sanitize_analysis(value):
     return value
 
 
-def validate_remediation(value, bundle):
+def validate_remediation(value, bundle, *, known_source_paths=()):
     remediation = value["remediation"]
     plans = remediation["plans"]
     expected = {
@@ -69,8 +69,10 @@ def validate_remediation(value, bundle):
                 raise DiagnosisError(
                     "INVALID_REMEDIATION", "수정 예시의 자리표시자 설명이 일치하지 않습니다."
                 )
-            if change["target_known"] and not any(
-                change["target"] in line.text for line in bundle.lines
+            if (
+                change["target_known"]
+                and change["target"] not in known_source_paths
+                and not any(change["target"] in line.text for line in bundle.lines)
             ):
                 raise DiagnosisError(
                     "INVALID_REMEDIATION", "입력에서 확인되지 않은 수정 대상을 확정했습니다."

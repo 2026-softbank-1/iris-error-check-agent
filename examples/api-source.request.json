@@ -1,0 +1,43 @@
+{
+  "diagnosis": {
+    "schema_version": "diagnosis-request.v1",
+    "tenant_id": "team-iris",
+    "project_id": "project-demo",
+    "deployment_id": "deploy-001",
+    "attempt_id": "attempt-003",
+    "trigger": "deployment_failed",
+    "context": {
+      "reported_stage": "build",
+      "deployment_status": "failed",
+      "exit_code": 2
+    },
+    "logs": [
+      {
+        "chunk_id": "chunk-01",
+        "source_id": "app-instance-01.stderr",
+        "stage": "build",
+        "stream": "stderr",
+        "source_line_start": 1,
+        "captured_at": "2026-10-01T01:00:00Z",
+        "is_complete": true,
+        "text": "> tsc --noEmit\nsrc/server.ts(2,7): error TS2322: Type 'string' is not assignable to type 'number'.\nERROR npm run build exited with code 2"
+      }
+    ],
+    "model_profile_id": "profile-demo-a",
+    "model_settings_version": "settings-7",
+    "previous_diagnosis_id": null
+  },
+  "source_snapshot": {
+    "commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "files": [
+      {
+        "path": "src/server.ts",
+        "content": "import { createServer } from 'node:http';\nconst port: number = process.env.PORT ?? '3000';\nconst server = createServer((_req, res) => res.end('ok'));\nserver.listen(port, '0.0.0.0');\n"
+      },
+      {
+        "path": "src/unrelated.ts",
+        "content": "// UNRELATED_SECRET_CANARY\n"
+      }
+    ]
+  }
+}

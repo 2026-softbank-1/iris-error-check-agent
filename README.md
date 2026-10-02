@@ -2,7 +2,27 @@
 
 IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 → 다음 확인 → 상세 해결안 → 한계**를 반환하는 오류 진단 프로젝트입니다.
 
-현재 산출물은 **진단 코어와 CMD에서 실행하는 로컬 CLI**입니다. 기본 실행은 `.env`를 읽어 OpenAI Responses API를 직접 호출합니다. `diagnose()`가 입력 전처리, 모델 호출, JSON·근거 검증, 실행 기록을 연결합니다. 백엔드 인증, 비동기 작업 API·DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
+현재 산출물은 **진단 코어, 로컬 CLI, `POST /diagnose` API**입니다. `.env`를 읽어 OpenAI Responses API를 직접 호출합니다. API는 먼저 로그를 분석하고, 필요할 때 **백엔드가 요청에 포함한 소스 파일의 관련 범위**를 선택해 재분석합니다. 백엔드 서비스와의 실제 연결, 사용자별 권한 확인, 비동기 작업 DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
+
+## 진단 API 실행 (v0.3)
+
+기존 `.env`의 LLM 설정을 그대로 사용합니다. 의존성을 업데이트한 후 실행합니다.
+
+```bat
+.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
+.venv\Scripts\python.exe -m pip install --no-build-isolation --no-deps -e .
+run_api.cmd --dev
+```
+
+개발 모드는 `127.0.0.1:8001`에서 실행됩니다. [Swagger UI](http://127.0.0.1:8001/docs)에서 요청 규격을 확인할 수 있습니다. 다른 CMD 창에서 합성 로그·소스 샘플을 호출합니다. **실제 LLM 사용량이 발생합니다.**
+
+```bat
+curl.exe -X POST http://127.0.0.1:8001/diagnose -H "Content-Type: application/json" --data-binary "@examples/api-source.request.json"
+```
+
+서버 모드에서는 `.env`에 별도의 `AGENT_API_KEY`(공백 없는 ASCII 32자 이상)를 설정하고 `run_api.cmd`로 실행합니다. 호출자는 `X-API-Key` 헤더로 인증합니다. `--dev`는 루프백 전용이며, 운영 백엔드용 키를 프론트엔드 번들에 넣지 않습니다.
+
+API 결과는 `diagnosis-result.v3`, 기존 CLI 결과는 `diagnosis-result.v2`입니다. API 요청은 기존 입력을 `diagnosis`에 넣고 선택적으로 `source_snapshot`을 추가합니다. [API·소스 분석 개발 문서](docs/API_SOURCE_ANALYSIS.md)에 전체 흐름, 제한, 오류 처리, 백엔드 연결 지점을 정리했습니다.
 
 ## CMD에서 바로 실행
 
@@ -53,6 +73,8 @@ API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않�
 - 진단 가능·정보 부족·실패 근거 없음의 세 상태 및 참조 관계 검증
 - 원인·로그 근거에 연결된 수정 코드·설정·명령 예시와 적용 조건, 검증 절차·기대 결과, 롤백·주의점
 - 수정 예시의 자리표시자·근거·대상 검사와 비밀값이 포함된 예시 거절
+- API 인증·CORS 허용 목록·요청 크기·동시 처리 제한과 Swagger UI
+- 백엔드 제공 소스의 조건부 선택, 파일·줄 번호·로그/코드 근거 연결, 소스 실패 시 로그 진단 유지
 - OpenCode 전용 에이전트·버전·권한 사전 확인, 요청별 세션·모델 지정
 - 진단 시간 초과 시 중단 요청, 세션 삭제와 정리 실패 기록
 - 실제 모델 메타데이터·사용량·프롬프트 해시·입력 스냅샷 해시 기록
@@ -137,7 +159,7 @@ OpenCode는 사전 설정 검사 외에 실제 버전별 동작 확인이 필요
 
 `analysis`는 모델의 진단 내용이며 나머지는 실행 코드가 채웁니다.
 
-v0.2부터 출력 `schema_version`은 `diagnosis-result.v2`입니다. 입력은 기존 `diagnosis-request.v1`을 유지합니다. 응답에 `analysis.remediation`이 필수로 추가됐으므로 백엔드의 결과 DTO와 화면에서 해당 필드를 처리해야 합니다. 이전 버전의 분석 JSON은 현재 `validate` 명령을 통과하지 않습니다.
+CLI 출력은 `diagnosis-result.v2`입니다. CLI 입력은 기존 `diagnosis-request.v1`을 유지합니다. API는 이를 감싼 요청과 `diagnosis-result.v3` 응답을 사용합니다. `analysis.remediation`이 필수이므로 백엔드의 결과 DTO와 화면에서 해당 필드를 처리해야 합니다. v0.1의 분석 JSON은 현재 `validate` 명령을 통과하지 않습니다.
 
 | 필드 | 의미 |
 | --- | --- |

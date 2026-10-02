@@ -34,7 +34,7 @@ def strict_json(text: str):
     return json.loads(text, object_pairs_hook=_unique_pairs, parse_constant=reject_constant)
 
 
-def validate_analysis(text: str, bundle: EvidenceBundle) -> dict:
+def validate_analysis(text: str, bundle: EvidenceBundle, *, known_source_paths=()) -> dict:
     try:
         value = strict_json(text)
     except (ValueError, RecursionError):
@@ -93,5 +93,5 @@ def validate_analysis(text: str, bundle: EvidenceBundle) -> dict:
             valid = valid and bool(value["missing_information"])
     if not valid:
         raise DiagnosisError("INVALID_STATE", "진단 상태와 결과 내용의 필수 조건이 맞지 않습니다.")
-    validate_remediation(value, bundle)
+    validate_remediation(value, bundle, known_source_paths=known_source_paths)
     return value

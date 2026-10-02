@@ -22,13 +22,41 @@ async def diagnose(request: DiagnosisRequest, runtime: DiagnosisRuntime) -> dict
         raise DiagnosisError("PROFILE_MISMATCH", "요청한 모델 프로필과 실행 프로필이 다릅니다.")
     bundle = prepare(request, runtime.profile.max_evidence_bytes)
     prompt, schema = load_prompt(), load_schema()
+    return await execute_stage(
+        request,
+        runtime,
+        bundle,
+        prompt,
+        schema,
+        bundle.model_payload(),
+        validate_analysis,
+        started=started,
+        started_at=started_at,
+    )
+
+
+async def execute_stage(
+    request,
+    runtime,
+    bundle,
+    prompt,
+    schema,
+    model_input,
+    validator,
+    *,
+    started=None,
+    started_at=None,
+):
+    """Execute and account for one bounded model call using a stage-specific validator."""
+    started = time.monotonic() if started is None else started
+    started_at = started_at or datetime.now(UTC).isoformat()
     analysis, error, model_metadata = None, None, {}
     job_status = "failed"
     try:
         async with asyncio.timeout(runtime.profile.timeout_seconds):
-            response = await runtime.run(prompt, bundle.model_payload(), schema)
+            response = await runtime.run(prompt, model_input, schema)
             model_metadata = response.metadata
-            analysis = validate_analysis(response.text, bundle)
+            analysis = validator(response.text, bundle)
             # JSON validation is synchronous; check the deadline again before accepting it.
             if time.monotonic() - started >= runtime.profile.timeout_seconds:
                 raise TimeoutError
