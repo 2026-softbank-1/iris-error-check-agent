@@ -1,16 +1,28 @@
-"""Log-first, at most two calls. Read only selected, inline source ranges."""
+"""Bounded diagnosis: optional source-first routing, otherwise at most two calls."""
 
 import copy
 import hashlib
 import json
 import logging
 import time
+from datetime import UTC, datetime
 
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
 from .backend_contracts import backend_context, prepare_backend
+from .diagnosis_routing import (
+    CONCISE_PROMPT,
+    PREFETCH_PROMPT,
+    REASON,
+    DiagnosisSettings,
+    candidate_ranges,
+    complete_ranges,
+)
 from .errors import DiagnosisError
+from .graph_compact import FALLBACK_CODES, CompactDecision, CompactService, expand
+from .graph_compact import PROMPT as COMPACT_PROMPT
+from .knowledge.context import prompt_size
 from .preprocessing import normalize, prepare, redact, redact_object
 from .service import execute_stage
 from .source_contracts import SourceFindings, SourceRequest
@@ -180,9 +192,17 @@ async def diagnose_with_source(
     archive_loader=None,
     graph_observer=None,
     reasoning_service=None,
+    diagnosis_settings=None,
+    compact_service=None,
 ):
     started = time.monotonic()
+    started_at = datetime.now(UTC).isoformat()
     reasoning_reports = []
+    settings = diagnosis_settings or DiagnosisSettings()
+    prefetched = None
+    preliminary_stages = []
+    compact_accepted = False
+    route_reason = "standard" if settings.mode == "standard" else "no_safe_candidate"
     request, snapshot = payload.diagnosis, payload.source_snapshot
     index = source_index(snapshot)
     runtime = runtime_factory()
@@ -194,44 +214,152 @@ async def diagnose_with_source(
             if backend_data
             else prepare(request, runtime.profile.max_evidence_bytes)
         )
+        if settings.mode != "standard" and (index or archive_loader is not None):
+            requests = candidate_ranges(bundle)
+            if requests:
+                route_reason = "source_not_complete"
+                prefetch_index, prefetch_limits = index, []
+                try:
+                    if archive_loader is not None:
+                        prefetch_snapshot, requests, prefetch_limits = await archive_loader(
+                            requests, bundle
+                        )
+                        prefetch_index = source_index(prefetch_snapshot)
+                    requests = complete_ranges(prefetch_index, requests)
+                    evidence, ranges, limits = select_source(prefetch_index, requests)
+                    if evidence and len(ranges) == len(requests):
+                        prefetched = (requests, evidence, ranges, prefetch_limits + limits)
+                        route_reason = "complete_stack_source"
+                except DiagnosisError:
+                    # No model call was spent. The normal path decides whether to
+                    # use source; request-local loader failures/bytes are reused.
+                    route_reason = "prefetch_unavailable"
+        if prefetched:
+            candidate_data = bundle.model_payload()
+            candidate_data.update(source_evidence=prefetched[1], source_limitations=prefetched[3])
+            candidate_prompt = load_prompt() + CODE_PROMPT + PREFETCH_PROMPT + CONCISE_PROMPT
+            candidate_schema = stage_schema("source_findings", SourceFindings)
+            # Match the direct adapter's full-schema/input accounting before
+            # choosing this route. An oversize prefetch must not lose log-only output.
+            size = len(
+                (
+                    candidate_prompt
+                    + "\n\n[Full validation schema]\n"
+                    + json.dumps(candidate_schema, ensure_ascii=False)
+                    + json.dumps({"untrusted_log_data": candidate_data}, ensure_ascii=False)
+                ).encode("utf-8")
+            )
+            if size > runtime.profile.max_prompt_bytes:
+                prefetched = None
+                route_reason = "prefetch_prompt_budget"
+        first_stage = "source" if prefetched else "logs"
         data = bundle.model_payload()
-        data["source_manifest"] = [
-            {"path": path, "line_count": len(item["lines"])} for path, item in index.items()
-        ]
-        prompt = load_prompt() + SELECTION_PROMPT
-        if backend_data:
-            data["source_archive_available"] = archive_loader is not None
-            prompt += ARCHIVE_SELECTION_PROMPT
-        schema = stage_schema("source_request", SourceRequest)
-        if reasoning_service is not None:
-            prompt, data, report = await reasoning_service.apply(
+        if prefetched:
+            _, evidence, _, limits = prefetched
+            data.update(source_evidence=evidence, source_limitations=limits)
+            prompt = load_prompt() + CODE_PROMPT + PREFETCH_PROMPT
+            extra_name, extra_model = "source_findings", SourceFindings
+        else:
+            data["source_manifest"] = [
+                {"path": path, "line_count": len(item["lines"])} for path, item in index.items()
+            ]
+            prompt = load_prompt() + SELECTION_PROMPT
+            if backend_data:
+                data["source_archive_available"] = archive_loader is not None
+                prompt += ARCHIVE_SELECTION_PROMPT
+            extra_name, extra_model = "source_request", SourceRequest
+        if settings.mode != "standard":
+            prompt += CONCISE_PROMPT
+        schema = stage_schema(extra_name, extra_model)
+        packet = None
+        if prefetched and settings.mode == "graph_compact":
+            service = compact_service or CompactService()
+            packet, compact_report = await service.prepare(request, bundle, prefetched[1])
+            reasoning_reports.append(compact_report)
+            logger = logging.getLogger(__name__)
+            logger.info(
+                "graph_compact status=%s metrics=%s",
+                compact_report["status"],
+                compact_report.get("metrics"),
+            )
+            if (
+                packet
+                and prompt_size(COMPACT_PROMPT, packet, CompactDecision.model_json_schema())
+                > runtime.profile.max_prompt_bytes
+            ):
+                packet = None
+                compact_report["status"] = "prompt_budget"
+            if packet:
+                result = await execute_stage(
+                    request,
+                    runtime,
+                    bundle,
+                    COMPACT_PROMPT,
+                    CompactDecision.model_json_schema(),
+                    packet,
+                    lambda text, b: parse_stage(
+                        expand(text, packet),
+                        b,
+                        "source_findings",
+                        SourceFindings,
+                        source_lines=prefetched[1],
+                    ),
+                    stage_name="source",
+                )
+                code = (result["error"] or {}).get("code")
+                compact_report["decision_status"] = code or "accepted"
+                if code in FALLBACK_CODES:
+                    preliminary_stages.append(
+                        {
+                            "stage": "source",
+                            "job_status": result["job_status"],
+                            "error": result["error"],
+                            **result["execution"],
+                        }
+                    )
+                    await runtime.close()
+                    runtime = runtime_factory()
+                    packet = None
+                    route_reason = "compact_deferred_to_source"
+                else:
+                    compact_accepted = result["analysis"] is not None
+                    route_reason = "graph_compact"
+        if packet is None:
+            if reasoning_service is not None:
+                prompt, data, report = await reasoning_service.apply(
+                    request,
+                    bundle,
+                    prompt,
+                    data,
+                    schema,
+                    runtime.profile,
+                    service_id=str(backend_data.service_id) if backend_data else None,
+                    stage=first_stage,
+                )
+                reasoning_reports.append(report)
+            result = await execute_stage(
                 request,
+                runtime,
                 bundle,
                 prompt,
-                data,
                 schema,
-                runtime.profile,
-                service_id=str(backend_data.service_id) if backend_data else None,
-                stage="logs",
+                data,
+                lambda text, b: parse_stage(
+                    text,
+                    b,
+                    extra_name,
+                    extra_model,
+                    source_lines=prefetched[1] if prefetched else (),
+                ),
             )
-            reasoning_reports.append(report)
-        result = await execute_stage(
-            request,
-            runtime,
-            bundle,
-            prompt,
-            schema,
-            data,
-            lambda text, b: parse_stage(text, b, "source_request", SourceRequest),
-        )
     finally:
         await runtime.close()
     result["schema_version"] = "diagnosis-result.v3"
     if backend_data:
         result["execution"]["preprocessing_version"] = "masking.v1/backend-timeline.v1"
-    stages = [
+    stages = preliminary_stages + [
         {
-            "stage": "logs",
+            "stage": first_stage,
             "job_status": result["job_status"],
             "error": result["error"],
             **result["execution"],
@@ -257,6 +385,10 @@ async def diagnose_with_source(
         "error": None,
     }
     result["source_analysis"] = source
+    if compact_accepted:
+        source["limitations"].append(
+            "LLM이 파일 읽기 후보와 조건부 계획을 검토했으며, 상세 공통 절차는 검증된 서버 템플릿으로 조립했습니다."
+        )
     graph_stages = []
     if backend_data:
         result["backend_context"] = backend_context(backend_data)
@@ -265,7 +397,30 @@ async def diagnose_with_source(
         )
     if commit_sha:
         source["limitations"].append("커밋 SHA와 소스 내용의 일치는 백엔드 제공 정보에 의존합니다.")
-    if result["analysis"] is not None:
+    if prefetched:
+        requests, evidence, ranges, limits = prefetched
+        source.update(
+            reason=REASON,
+            requested_files=requests,
+            evidence=evidence,
+            read_ranges=ranges,
+            status="failed",
+            error=result["error"],
+        )
+        source["limitations"].extend(limits)
+        source["limitations"].append(
+            "스택의 첫 애플리케이션 파일만 사전 확인했습니다. 다른 파일·배포 설정은 미확인입니다."
+        )
+        if archive_loader is not None:
+            source["archive_sha256"] = getattr(archive_loader, "archive_sha256", None)
+        if result["analysis"] is not None:
+            source.update(
+                status="analyzed",
+                findings=result["analysis"].pop("source_findings")["findings"],
+            )
+        if graph_observer is not None:
+            graph_stages.append({"stage": "source", "analysis": copy.deepcopy(result["analysis"])})
+    elif result["analysis"] is not None:
         selection = result["analysis"].pop("source_request")
         if graph_observer is not None:
             graph_stages.append({"stage": "logs", "analysis": copy.deepcopy(result["analysis"])})
@@ -297,6 +452,8 @@ async def diagnose_with_source(
                     data = bundle.model_payload()
                     data.update(source_evidence=evidence, source_limitations=source["limitations"])
                     prompt = load_prompt() + CODE_PROMPT
+                    if settings.mode != "standard":
+                        prompt += CONCISE_PROMPT
                     schema = stage_schema("source_findings", SourceFindings)
                     if reasoning_service is not None:
                         prompt, data, report = await reasoning_service.apply(
@@ -355,7 +512,7 @@ async def diagnose_with_source(
         values = [(stage.get("tokens") or {}).get(key) for stage in stages]
         tokens[key] = sum(values) if all(type(v) is int for v in values) else None
     result["execution"] = {
-        "started_at": stages[0]["started_at"],
+        "started_at": started_at,
         "elapsed_ms": round((time.monotonic() - started) * 1000),
         "message_submissions": sum(s["message_submissions"] for s in stages),
         "provider_call_count": sum(counts) if all(type(c) is int for c in counts) else None,
@@ -373,4 +530,16 @@ async def diagnose_with_source(
         except Exception:  # noqa: BLE001 - shadow failures cannot change the API contract
             # Observer failures are internal and cannot change the public diagnosis.
             logging.getLogger(__name__).warning("knowledge_shadow status=observer_failed")
+    logging.getLogger(__name__).info(
+        "diagnosis_timing diagnosis_id=%s mode=%s route=%s total_ms=%s "
+        "stage_ms=%s provider_calls=%s source_download_ms=%s source_read_ms=%s",
+        result["diagnosis_id"],
+        settings.mode,
+        route_reason,
+        result["execution"]["elapsed_ms"],
+        [(s["stage"], s["elapsed_ms"]) for s in stages],
+        result["execution"]["provider_call_count"],
+        getattr(archive_loader, "timings", {}).get("download_ms", 0),
+        getattr(archive_loader, "timings", {}).get("read_ms", 0),
+    )
     return result

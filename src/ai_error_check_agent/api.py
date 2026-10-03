@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import hmac
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -16,8 +17,10 @@ from pydantic import TypeAdapter, ValidationError
 
 from . import __version__
 from .backend_contracts import BackendData, BackendEnvelope, adapt_backend
+from .diagnosis_routing import DiagnosisSettings
 from .direct_api import OpenAIResponsesRuntime, load_direct_settings
 from .errors import DiagnosisError
+from .graph_compact import CompactService
 from .knowledge.reasoning import ReasoningService, ReasoningSettings
 from .knowledge.shadow import KnowledgeSettings, ShadowObserver
 from .model_catalog import load_catalog
@@ -112,6 +115,7 @@ def create_app(
     model_runtime_factory=None,
     knowledge_settings=None,
     reasoning_settings=None,
+    diagnosis_settings=None,
 ):
     if not dev and not api_key:
         raise DiagnosisError("MISSING_AGENT_API_KEY", "서버 모드는 AGENT_API_KEY가 필요합니다.")
@@ -162,6 +166,12 @@ def create_app(
         ReasoningService(reasoning_settings) if reasoning_settings.mode == "assist" else None
     )
     app.state.reasoning_service = reasoning_service
+    compact_service = (
+        CompactService()
+        if diagnosis_settings and diagnosis_settings.mode == "graph_compact"
+        else None
+    )
+    app.state.compact_service = compact_service
     app.add_middleware(RequestGate, api_key=api_key, max_body_bytes=max_body_bytes)
     if allowed_origins:
         app.add_middleware(
@@ -277,6 +287,8 @@ def create_app(
                 result = await diagnose_with_source(
                     payload,
                     selected_factory,
+                    **({"diagnosis_settings": diagnosis_settings} if diagnosis_settings else {}),
+                    **({"compact_service": compact_service} if compact_service else {}),
                     backend_data=backend_data,
                     archive_loader=loader,
                     **({"graph_observer": graph_observer} if graph_observer else {}),
@@ -286,6 +298,8 @@ def create_app(
                 result = await diagnose_with_source(
                     payload,
                     selected_factory,
+                    **({"diagnosis_settings": diagnosis_settings} if diagnosis_settings else {}),
+                    **({"compact_service": compact_service} if compact_service else {}),
                     **({"graph_observer": graph_observer} if graph_observer else {}),
                     **({"reasoning_service": reasoning_service} if reasoning_service else {}),
                 )
@@ -382,6 +396,7 @@ def main(argv=None):
             model_runtime_factory=model_runtime_factory,
             knowledge_settings=KnowledgeSettings.from_config(config),
             reasoning_settings=ReasoningSettings.from_config(config),
+            diagnosis_settings=DiagnosisSettings.from_config(config),
             archive_policy=ArchivePolicy(
                 allowed_hosts=tuple(
                     host.strip().lower()
@@ -392,6 +407,8 @@ def main(argv=None):
         )
         import uvicorn
 
+        # Expose sanitized agent timing records with the normal server log level.
+        logging.basicConfig(level=logging.INFO)
         uvicorn.run(app, host=args.host, port=args.port, workers=1)
     except (DiagnosisError, OSError) as exc:
         parser.error(

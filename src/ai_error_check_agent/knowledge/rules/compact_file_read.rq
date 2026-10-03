@@ -1,0 +1,11 @@
+PREFIX c: <urn:iris:compact:v1:>
+CONSTRUCT {
+ ?candidate a c:Candidate ; c:input ?failure, ?frame, ?read ;
+ c:rule "observed-file-read.v1" ; c:scope ?scope ; c:target ?target .
+}
+WHERE {
+ ?failure a c:ReadFailure ; c:scope ?scope ; c:target ?target ; c:code "ENOENT" .
+ ?frame a c:StackFrame ; c:scope ?scope ; c:target ?target ; c:path ?path ; c:line ?line .
+ ?read a c:SourceRead ; c:scope ?scope ; c:target ?target ; c:path ?path ; c:line ?line .
+ BIND(IRI(CONCAT(STR(?failure), "/candidate")) AS ?candidate)
+}

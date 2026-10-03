@@ -1,0 +1,20 @@
+@prefix c: <urn:iris:compact:v1:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+c:EvidenceShape a sh:NodeShape ; sh:targetClass c:Evidence ;
+ sh:property [ sh:path c:id ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^(EV|SC)[0-9]{6}$" ] .
+c:FactShape a sh:NodeShape ; sh:targetClass c:Fact ;
+ sh:property [ sh:path c:scope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:target ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:evidence ; sh:minCount 1 ; sh:class c:Evidence ] .
+c:FailureShape a sh:NodeShape ; sh:targetClass c:ReadFailure ;
+ sh:property [ sh:path c:code ; sh:hasValue "ENOENT" ; sh:maxCount 1 ] .
+c:FrameShape a sh:NodeShape ; sh:targetClass c:StackFrame ;
+ sh:property [ sh:path c:path ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:line ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] .
+c:ReadShape a sh:NodeShape ; sh:targetClass c:SourceRead ;
+ sh:property [ sh:path c:path ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:line ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] .
+c:CandidateShape a sh:NodeShape ; sh:targetClass c:Candidate ;
+ sh:property [ sh:path c:input ; sh:minCount 3 ; sh:maxCount 3 ; sh:class c:Fact ] ;
+ sh:property [ sh:path c:rule ; sh:hasValue "observed-file-read.v1" ; sh:maxCount 1 ] .

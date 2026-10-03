@@ -8,6 +8,7 @@ import logging
 import re
 import tarfile
 import tempfile
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
@@ -314,11 +315,33 @@ class ArchiveLoader:
         self.policy = policy or ArchivePolicy()
         self.transport = transport
         self.archive_sha256 = None
+        # This loader belongs to ONE authenticated diagnosis request, never a
+        # cross-tenant/commit cache. Adaptive fallback can reuse the same bytes.
+        self._blob = None
+        self._download_error = None
+        self.timings = {"download_ms": 0, "read_ms": 0, "downloads": 0}
 
     async def __call__(self, requests, bundle):
-        blob = await download_archive(self.source, self.policy, transport=self.transport)
-        snapshot, ranges, limits, digest = await asyncio.to_thread(
-            read_archive, blob, self.source, requests, bundle, self.policy
-        )
+        if self._download_error is not None:
+            raise self._download_error
+        if self._blob is None:
+            started = time.monotonic()
+            self.timings["downloads"] += 1
+            try:
+                self._blob = await download_archive(
+                    self.source, self.policy, transport=self.transport
+                )
+            except DiagnosisError as exc:
+                self._download_error = exc
+                raise
+            finally:
+                self.timings["download_ms"] += round((time.monotonic() - started) * 1000)
+        started = time.monotonic()
+        try:
+            snapshot, ranges, limits, digest = await asyncio.to_thread(
+                read_archive, self._blob, self.source, requests, bundle, self.policy
+            )
+        finally:
+            self.timings["read_ms"] += round((time.monotonic() - started) * 1000)
         self.archive_sha256 = digest
         return snapshot, ranges, limits

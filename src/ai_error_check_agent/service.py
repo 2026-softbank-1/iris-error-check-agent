@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -46,17 +47,28 @@ async def execute_stage(
     *,
     started=None,
     started_at=None,
+    stage_name=None,
 ):
     """Execute and account for one bounded model call using a stage-specific validator."""
     started = time.monotonic() if started is None else started
     started_at = started_at or datetime.now(UTC).isoformat()
     analysis, error, model_metadata = None, None, {}
+    diagnosis_id = "diag-" + uuid4().hex
+    model_ms = validation_ms = 0
     job_status = "failed"
     try:
         async with asyncio.timeout(runtime.profile.timeout_seconds):
-            response = await runtime.run(prompt, model_input, schema)
+            call_started = time.monotonic()
+            try:
+                response = await runtime.run(prompt, model_input, schema)
+            finally:
+                model_ms = round((time.monotonic() - call_started) * 1000)
             model_metadata = response.metadata
-            analysis = validator(response.text, bundle)
+            validation_started = time.monotonic()
+            try:
+                analysis = validator(response.text, bundle)
+            finally:
+                validation_ms = round((time.monotonic() - validation_started) * 1000)
             # JSON validation is synchronous; check the deadline again before accepting it.
             if time.monotonic() - started >= runtime.profile.timeout_seconds:
                 raise TimeoutError
@@ -69,10 +81,18 @@ async def execute_stage(
         analysis = None
         job_status = "timed_out" if exc.code == "MODEL_TIMEOUT" else "failed"
         error = exc.as_dict()
+    logging.getLogger(__name__).info(
+        "diagnosis_stage_timing diagnosis_id=%s stage=%s status=%s model_ms=%s validation_ms=%s",
+        diagnosis_id,
+        stage_name or ("source" if "source_findings" in schema.get("properties", {}) else "logs"),
+        job_status,
+        model_ms,
+        validation_ms,
+    )
 
     return {
         "schema_version": "diagnosis-result.v2",
-        "diagnosis_id": "diag-" + uuid4().hex,
+        "diagnosis_id": diagnosis_id,
         "scope": {
             key: getattr(request, key)
             for key in ("tenant_id", "project_id", "deployment_id", "attempt_id")

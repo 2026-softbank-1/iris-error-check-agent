@@ -6,6 +6,10 @@ IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 →
 
 기존 API 규격을 유지하는 지식 그래프 병행 검증을 추가했습니다. 기본값은 비활성이며 `AGENT_KG_MODE=shadow`에서 RDF 생성·SHACL 검증·내부 저장을 수행합니다. 활성화, 처리 상한, 오프라인 평가와 보관 한계는 [지식 그래프 개발 문서](docs/KNOWLEDGE_GRAPH_SHADOW.md)를 참고하세요.
 
+`AGENT_DIAGNOSIS_MODE=adaptive`는 명확한 Node `ENOENT` 오류에서 관련 소스를 먼저 읽고 한 번의 LLM 호출로 진단합니다. 모호한 경우 기존 로그 우선 경로로 돌아갑니다. API 규격·모델·추론 노력·출력 한도·근거 검증은 유지하며, 기본값 `standard`로 즉시 복귀할 수 있습니다. 적용 조건, 실제 호출 비교와 10초 목표의 한계는 [진단 지연 최적화 문서](docs/DIAGNOSIS_LATENCY.md)를 참고하세요.
+
+`AGENT_DIAGNOSIS_MODE=graph_compact`는 지원하는 Node 파일 읽기 오류에서 로그·스택·소스 관계를 SHACL/SPARQL로 확인하고, LLM이 짧게 채택/보류를 판단합니다. 채택 시 상세 해결 절차는 검토된 서버 템플릿으로 조립하며 기존 응답 검증을 거칩니다. 미지원 사례는 `adaptive`로 돌아갑니다. 적용 범위와 실제 속도·품질 비교는 [graph_compact 개발·평가 문서](docs/GRAPH_COMPACT.md)에 기록했습니다.
+
 ## 진단 API 실행 (v0.5.0)
 
 OpenCode 화면과 서비스 API에서 같은 모델 목록을 선택할 수 있습니다. 기존 GPT 설정은 유지하고, Sakana를 쓰려면 `.env`에 `SAKANA_API_KEY`를 추가합니다.

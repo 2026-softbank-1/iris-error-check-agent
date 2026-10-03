@@ -1,0 +1,99 @@
+{
+  "analysis_status": "diagnosed",
+  "summary": "",
+  "observations": [
+    {
+      "id": "O1",
+      "kind": "failure",
+      "text": "",
+      "evidence_ids": []
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "category": "other",
+      "support_level": "direct",
+      "statement": "",
+      "observation_ids": [
+        "O1"
+      ],
+      "evidence_ids": [],
+      "counter_evidence_ids": [],
+      "uncertainty": ""
+    }
+  ],
+  "next_checks": [
+    {
+      "id": "C1",
+      "target": "",
+      "method": "실패한 실행 환경에서 파일·부모 경로·링크 대상 및 마운트를 대조하고 빌드 산출물·초기화 기록·정상 데이터 공급 계약을 확인합니다. 같은 실행의 후속 회복·재실패 로그도 확인합니다.",
+      "purpose": "파일 미포함, 잘못된 경로, 마운트 가림과 공급 시점을 구분하고 실제 수정 위치와 데이터 보존 조건을 결정합니다.",
+      "hypothesis_ids": [
+        "H1"
+      ]
+    }
+  ],
+  "missing_information": [
+    {
+      "requested_data": "파일 포함·마운트·초기화 설정의 비밀값 없는 발췌, 파일의 소유·영속성·형식 계약 및 누락되지 않은 후속 로그",
+      "reason": "직접 읽기 실패는 확인되지만 배포상 원인과 안전한 공급 방법, 후속 회복 여부는 별도 확인이 필요합니다."
+    }
+  ],
+  "limitations": [
+    "소스 스냅샷과 실제 배포 커밋의 일치를 독립 검증하지 않았습니다.",
+    "첫 애플리케이션 파일과 제공 로그만 확인했습니다. 원인 후보는 그래프의 관계와 LLM 검토를 거쳤지만 배포 환경을 직접 점검한 결과가 아닙니다."
+  ],
+  "remediation": {
+    "status": "proposed",
+    "reason": "검증된 원본과 공급 계약이 확인된 경우에만 적용하는 파일 공급 템플릿입니다. 빈 파일·빈 배열로 오류를 숨기지 않으며 서버는 수정이나 명령 실행을 하지 않았습니다.",
+    "plans": [
+      {
+        "id": "R1",
+        "title": "검증된 필수 파일을 올바른 시작 전 공급 단계에 제공",
+        "hypothesis_ids": [
+          "H1"
+        ],
+        "evidence_ids": [],
+        "apply_when": [
+          "해당 경로가 의도된 필수 파일이며, 부모 경로·링크·마운트를 점검하고 권위 있는 원본과 파일 형식·데이터 보존 계약을 확인한 경우에만 적용합니다.",
+          "파일 복사가 실제 공급 방식인 Bash와 Node.js 환경에서 사용합니다. 앱·다른 초기화 작업의 쓰기를 중지하고, 이미지 재생성이나 마운트 이후에도 유지되는 적용 위치와 실행 사용자 권한을 확인합니다.",
+          "원본 내용을 애플리케이션의 실제 형식·항목 계약으로 먼저 검증합니다. 기존 데이터나 링크가 있다면 덮어쓰지 말고 실제 복구·경로 수정 절차를 별도로 결정합니다."
+        ],
+        "changes": [
+          {
+            "kind": "command",
+            "target": "",
+            "target_known": true,
+            "instruction": "사람이 공급 위치·권한·데이터 계약을 검토한 뒤 실행하는 예시입니다. 자리표시자를 올바르게 인용한 경로로 바꾸고, 운영 데이터는 보존합니다. 기존 대상은 COPYFILE_EXCL로 덮어쓰지 않습니다.",
+            "language": "bash",
+            "snippet_kind": "template",
+            "snippet": "node --input-type=module -e '\nimport { copyFileSync, constants, mkdirSync, statSync } from \"node:fs\";\nimport { dirname } from \"node:path\";\nconst [source, target] = process.argv.slice(1);\nif (!statSync(source).isFile()) throw new Error(\"Validated source must be a file\");\nmkdirSync(dirname(target), { recursive: true });\ncopyFileSync(source, target, constants.COPYFILE_EXCL);\n' '{{VERIFIED_SOURCE_PATH}}' '__OBSERVED_TARGET__'",
+            "placeholders": [
+              {
+                "name": "VERIFIED_SOURCE_PATH",
+                "description": "출처와 실제 데이터 형식·항목 계약을 검증한 정상 원본 파일의 경로"
+              }
+            ]
+          }
+        ],
+        "verification": [
+          {
+            "instruction": "최종 이미지·마운트 조건에서 앱 실행 사용자로 파일을 읽고 승인된 원본과 비교하며 실제 파일 형식과 데이터 계약을 검사합니다.",
+            "expected_result": "의도한 경로의 파일이 정상 원본과 일치하고 읽기·형식·데이터 계약 검증이 통과합니다."
+          },
+          {
+            "instruction": "변경한 공급 단계를 포함해 재배포·재기동하고 같은 실행의 시작 로그, 상태 검사, 파일을 사용하는 실제 기능과 후속 오류를 확인합니다.",
+            "expected_result": "같은 ENOENT가 재발하지 않으며 상태·기능 검사가 통과하고 기대한 데이터가 유지됩니다."
+          }
+        ],
+        "rollback": [
+          "이전 공급 설정과 산출물로 복귀하되 신규·기존 데이터 및 실행 이후 변경분을 먼저 보존합니다. 파일을 자동 삭제하거나 초기값으로 덮어쓰지 않으며, 설정 롤백만으로 데이터 복구나 정상 기동이 보장되지는 않습니다."
+        ],
+        "risks": [
+          "잘못된 원본·경로·마운트는 데이터 불일치나 장애를 만들 수 있습니다. 복사·검증 실패 시 앱을 시작하지 말고 남은 파일 상태를 확인합니다. 권한과 동시 초기화, 영속 데이터의 소유·보존 조건을 별도로 검토해야 합니다."
+        ]
+      }
+    ]
+  }
+}

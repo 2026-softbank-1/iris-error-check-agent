@@ -1,0 +1,510 @@
+{
+  "version": "graph-compact-eval.v1",
+  "note": "Eight authored cases; paired live model calls with fixture S3. Not production latency or held-out incident accuracy.",
+  "cases": [
+    {
+      "id": "missing-task-data",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/tasks.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "compact",
+      "acceptable_statuses": [
+        "diagnosed"
+      ],
+      "quality_rubric": [
+        "ENOENT 파일 읽기 실패를 실제 로그 근거와 연결한다.",
+        "패키징 누락·마운트·공급 실패 중 하나로 근본 원인을 확정하지 않는다.",
+        "소스 스냅샷 일치·누락 로그·데이터 계약의 미확인을 유지한다.",
+        "정상 원본과 공급 계약을 확인한 조건부 수정, 기존 데이터 보존, 검증·되돌리기를 제공한다."
+      ]
+    },
+    {
+      "id": "renamed-file",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/catalog.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/catalog.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "compact",
+      "acceptable_statuses": [
+        "diagnosed"
+      ],
+      "quality_rubric": [
+        "ENOENT 파일 읽기 실패를 실제 로그 근거와 연결한다.",
+        "패키징 누락·마운트·공급 실패 중 하나로 근본 원인을 확정하지 않는다.",
+        "소스 스냅샷 일치·누락 로그·데이터 계약의 미확인을 유지한다.",
+        "정상 원본과 공급 계약을 확인한 조건부 수정, 기존 데이터 보존, 검증·되돌리기를 제공한다."
+      ]
+    },
+    {
+      "id": "repeated-stack",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18\n[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18\n[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/tasks.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "compact",
+      "acceptable_statuses": [
+        "diagnosed"
+      ],
+      "quality_rubric": [
+        "ENOENT 파일 읽기 실패를 실제 로그 근거와 연결한다.",
+        "패키징 누락·마운트·공급 실패 중 하나로 근본 원인을 확정하지 않는다.",
+        "소스 스냅샷 일치·누락 로그·데이터 계약의 미확인을 유지한다.",
+        "정상 원본과 공급 계약을 확인한 조건부 수정, 기존 데이터 보존, 검증·되돌리기를 제공한다."
+      ]
+    },
+    {
+      "id": "direct-literal",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:2:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { readFileSync } from 'node:fs';\nexport const initialTasks = JSON.parse(readFileSync('/app/data/tasks.json', 'utf8'));\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "compact",
+      "acceptable_statuses": [
+        "diagnosed"
+      ],
+      "quality_rubric": [
+        "ENOENT 파일 읽기 실패를 실제 로그 근거와 연결한다.",
+        "패키징 누락·마운트·공급 실패 중 하나로 근본 원인을 확정하지 않는다.",
+        "소스 스냅샷 일치·누락 로그·데이터 계약의 미확인을 유지한다.",
+        "정상 원본과 공급 계약을 확인한 조건부 수정, 기존 데이터 보존, 검증·되돌리기를 제공한다."
+      ]
+    },
+    {
+      "id": "recovered-same-stream",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18\n[startup] file provisioned by init job\n[startup] recovered: task data loaded successfully\n[startup] listening on port 3000; health check passed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/tasks.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "adaptive",
+      "acceptable_statuses": [
+        "no_failure_evidence"
+      ],
+      "quality_rubric": [
+        "오류와 동일 출처의 후속 회복을 함께 설명하고 미회복 장애로 확정하지 않는다.",
+        "수정 계획을 제시하지 않는다.",
+        "백엔드 FAILED와 종료 코드는 추가 확인 문맥으로 취급한다."
+      ]
+    },
+    {
+      "id": "other-stream-healthy",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            },
+            {
+              "id": "log-2",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "different-app",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup] listening on port 3000; health check passed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/tasks.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "adaptive",
+      "acceptable_statuses": [
+        "diagnosed"
+      ],
+      "quality_rubric": [
+        "ENOENT 파일 읽기 실패를 실제 로그 근거와 연결한다.",
+        "패키징 누락·마운트·공급 실패 중 하나로 근본 원인을 확정하지 않는다.",
+        "소스 스냅샷 일치·누락 로그·데이터 계약의 미확인을 유지한다.",
+        "정상 원본과 공급 계약을 확인한 조건부 수정, 기존 데이터 보존, 검증·되돌리기를 제공한다.",
+        "다른 앱의 건강 상태를 실패 앱의 회복 증거로 사용하지 않는다."
+      ]
+    },
+    {
+      "id": "source-target-mismatch",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/other.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "adaptive",
+      "acceptable_statuses": [
+        "diagnosed",
+        "insufficient_evidence"
+      ],
+      "quality_rubric": [
+        "로그 경로와 제공 소스의 파일 경로가 다름을 발견하고 스냅샷·배포 코드 일치를 의심한다.",
+        "제공 소스가 로그의 대상 파일을 읽는다고 잘못 주장하지 않는다.",
+        "원인 불확실성을 남기며 단정적 데이터 생성·덮어쓰기를 권하지 않는다."
+      ]
+    },
+    {
+      "id": "expected-test-error",
+      "payload": {
+        "success": true,
+        "message": "fixture",
+        "data": {
+          "projectId": "adaptive-eval",
+          "serviceId": "node-app",
+          "deploymentId": "deployment-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T05:45:00Z",
+            "to": "2026-10-03T05:50:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "log-1",
+              "timestamp": "2026-10-03T05:46:37Z",
+              "stage": "runtime",
+              "sourceId": "app-1",
+              "stream": "stderr",
+              "sequence": 1,
+              "text": "[startup-error] Error: ENOENT: no such file or directory, open '/app/data/tasks.json'\n    at readFileSync (node:fs:440:20)\n    at createTasks (file:///app/src/tasks.js:8:35)\n    at createApp (file:///app/src/app.js:39:15)\n    at file:///app/src/server.js:6:18\nfixture run: this ENOENT is expected and asserted by the unit test; no application was launched"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://example.s3.ap-northeast-2.amazonaws.com/fixture.tar.gz",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/tasks.js",
+          "content": "import { randomUUID } from 'node:crypto';\nimport { readFileSync } from 'node:fs';\n\nexport const categories = ['개발', '확인', '아이디어'];\n\nexport function createTasks() {\n  const file = new URL('../data/tasks.json', import.meta.url);\n  const initialTasks = JSON.parse(readFileSync(file, 'utf8'));\n  return initialTasks.map(task => ({ id: randomUUID(), ...task }));\n}\n"
+        },
+        {
+          "path": "src/app.js",
+          "content": "import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { randomUUID } from 'node:crypto';\nimport { categories, createTasks } from './tasks.js';\n\nconst assets = new Map([\n  ['/', ['index.html', 'text/html; charset=utf-8']],\n  ['/style.css', ['style.css', 'text/css; charset=utf-8']],\n  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],\n  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],\n]);\n\nfunction json(res, status, body) {\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });\n  res.end(JSON.stringify(body));\n}\n\nasync function readJson(req) {\n  if (req.headers['content-type']?.split(';')[0].trim() !== 'application/json') {\n    throw Object.assign(new Error('JSON 형식으로 요청해 주세요.'), { status: 415 });\n  }\n  let length = 0;\n  const chunks = [];\n  for await (const chunk of req) {\n    length += chunk.length;\n    if (length > 8192) throw Object.assign(new Error('요청이 너무 큽니다.'), { status: 413 });\n    chunks.push(chunk);\n  }\n  try {\n    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));\n    if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error();\n    return value;\n  } catch {\n    throw Object.assign(new Error('올바른 JSON 객체가 필요합니다.'), { status: 400 });\n  }\n}\n\nexport function createApp(config) {\n  let tasks = createTasks();\n  const startedAt = new Date().toISOString();\n  const server = createServer(async (req, res) => {\n    res.setHeader('X-Content-Type-Options', 'nosniff');\n    res.setHeader('Content-Security-Policy', \"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'\");\n    try {\n      const { pathname } = new URL(req.url, 'http://localhost');\n      if (req.method === 'GET' && pathname === '/healthz') {\n        return json(res, 200, { status: 'ok', app: 'iris-demo-web', startedAt });\n      }\n      if (req.method === 'GET' && pathname === '/api/tasks') {\n        return json(res, 200, { title: config.title, tasks });\n      }\n      if (req.method === 'POST' && pathname === '/api/tasks') {\n        const body = await readJson(req);\n        if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) {\n          return json(res, 400, { error: '할 일은 1~100자로 입력해 주세요.' });\n        }\n        if (!categories.includes(body.category)) return json(res, 400, { error: '분류를 확인해 주세요.' });\n        if (tasks.length >= 100) return json(res, 409, { error: '최대 100개까지 저장할 수 있어요.' });\n        const task = { id: randomUUID(), title: body.title.trim(), category: body.category, done: false };\n        tasks.unshift(task);\n        return json(res, 201, { task });\n      }\n      const taskRoute = pathname.match(/^\\/api\\/tasks\\/([a-z0-9-]+)$/);\n      if (taskRoute && ['PATCH', 'DELETE'].includes(req.method)) {\n        const task = tasks.find(item => item.id === taskRoute[1]);\n        if (!task) return json(res, 404, { error: '할 일을 찾을 수 없어요.' });\n        if (req.method === 'DELETE') {\n          tasks = tasks.filter(item => item.id !== task.id);\n          res.writeHead(204);\n          return res.end();\n        }\n        const body = await readJson(req);\n        if (typeof body.done !== 'boolean') return json(res, 400, { error: '완료 상태는 boolean이어야 합니다.' });\n        task.done = body.done;\n        return json(res, 200, { task });\n      }\n      if (req.method === 'GET' && assets.has(pathname)) {\n        const [file, type] = assets.get(pathname);\n        const content = await readFile(new URL('../public/' + file, import.meta.url));\n        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });\n        return res.end(content);\n      }\n      json(res, 404, { error: '페이지를 찾을 수 없어요.' });\n    } catch (error) {\n      if (!error.status) console.error('[request-error]', error.stack);\n      if (!res.headersSent && !res.destroyed) json(res, error.status || 500, { error: error.status ? error.message : '서버에서 오류가 발생했어요.' });\n    }\n  });\n  server.requestTimeout = 10000;\n  return server;\n}\n"
+        },
+        {
+          "path": "src/server.js",
+          "content": "import { loadConfig } from './config.js';\nimport { createApp } from './app.js';\n\ntry {\n  const config = loadConfig();\n  const server = createApp(config);\n  server.on('error', error => {\n    console.error(new Date().toISOString(), '[startup-error]', error.stack);\n    process.exitCode = 1;\n  });\n  server.listen(config.port, config.host, () => {\n    console.log(new Date().toISOString(), '[ready]', `IRIS demo listening on ${config.host}:${config.port}`);\n  });\n  for (const signal of ['SIGINT', 'SIGTERM']) {\n    process.once(signal, () => {\n      console.log(new Date().toISOString(), '[shutdown]', signal);\n      server.close(() => process.exit(0));\n      setTimeout(() => process.exit(1), 5000).unref();\n    });\n  }\n} catch (error) {\n  console.error(new Date().toISOString(), '[startup-error]', error.stack);\n  process.exitCode = 1;\n}\n"
+        }
+      ],
+      "expected_route": "defer",
+      "acceptable_statuses": [
+        "no_failure_evidence"
+      ],
+      "quality_rubric": [
+        "단위 테스트가 의도해 확인한 ENOENT이며 앱을 실제로 실행하지 않았다는 문맥을 반영한다.",
+        "수정 계획을 제시하지 않는다.",
+        "그래프에 관계가 있다는 사실만으로 실제 장애를 확정하지 않는다."
+      ]
+    }
+  ]
+}
