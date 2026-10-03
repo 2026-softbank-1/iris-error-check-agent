@@ -120,6 +120,7 @@ def test_one_compact_call_returns_unchanged_full_contract_and_provenance(request
         == "/app/data/tasks.json"
     )
     assert result["remediation_execution"] == "not_executed"
+    assert result["analysis"]["remediation"]["reason"] == ACCEPT["uncertainty"]
     assert "provide_verified_file" not in json.dumps(result["analysis"])
 
 
