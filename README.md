@@ -1,274 +1,160 @@
-# AI_Error_Check_Agent
+# iris-error-check-agent
 
-IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 → 다음 확인 → 상세 해결안 → 한계**를 반환하는 오류 진단 프로젝트입니다.
+Likelion 배포 실패 로그와 소스 스냅샷으로 원인·근거·해결안을 진단하는 에이전트다.
 
-현재 산출물은 **진단 코어, 로컬 CLI, `POST /diagnose` API**입니다. API는 `.env`를 읽어 OpenAI 직접 호출 또는 OpenCode 실행 방식을 선택합니다. 먼저 로그를 분석하고, 필요할 때 **백엔드가 제공한 S3 `.tar.gz` 또는 직접 전달한 소스 파일**에서 관련 범위를 선택해 재분석합니다. 본 서비스의 실제 S3·로그 연결, 사용자별 권한 확인, 비동기 작업 DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
+![version](https://img.shields.io/badge/version-0.5.0-blue)
+![python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![fastapi](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 
-기존 API 규격을 유지하는 지식 그래프 병행 검증을 추가했습니다. 기본값은 비활성이며 `AGENT_KG_MODE=shadow`에서 RDF 생성·SHACL 검증·내부 저장을 수행합니다. 활성화, 처리 상한, 오프라인 평가와 보관 한계는 [지식 그래프 개발 문서](docs/KNOWLEDGE_GRAPH_SHADOW.md)를 참고하세요.
+## 시스템 내 위치
 
-`AGENT_DIAGNOSIS_MODE=adaptive`는 명확한 Node `ENOENT` 오류에서 관련 소스를 먼저 읽고 한 번의 LLM 호출로 진단합니다. 모호한 경우 기존 로그 우선 경로로 돌아갑니다. API 규격·모델·추론 노력·출력 한도·근거 검증은 유지하며, 기본값 `standard`로 즉시 복귀할 수 있습니다. 적용 조건, 실제 호출 비교와 10초 목표의 한계는 [진단 지연 최적화 문서](docs/DIAGNOSIS_LATENCY.md)를 참고하세요.
-
-`AGENT_DIAGNOSIS_MODE=graph_compact`는 지원하는 Node 파일 읽기 오류에서 로그·스택·소스 관계를 SHACL/SPARQL로 확인하고, LLM이 짧게 채택/보류를 판단합니다. 채택 시 상세 해결 절차는 검토된 서버 템플릿으로 조립하며 기존 응답 검증을 거칩니다. 미지원 사례는 `adaptive`로 돌아갑니다. 적용 범위와 실제 속도·품질 비교는 [graph_compact 개발·평가 문서](docs/GRAPH_COMPACT.md)에 기록했습니다.
-
-## 진단 API 실행 (v0.5.0)
-
-OpenCode 화면과 서비스 API에서 같은 모델 목록을 선택할 수 있습니다. 기존 GPT 설정은 유지하고, Sakana를 쓰려면 `.env`에 `SAKANA_API_KEY`를 추가합니다.
-
-```bat
-run_opencode.cmd
+```mermaid
+flowchart LR
+  CLI[iris-cli] --> WAS
+  WEB[iris-web] --> WAS
+  WAS[iris-was<br/>Control API · Workers] -->|values 커밋| GITOPS[iris-gitops-environments]
+  GITOPS --> ARGO[Argo CD] -->|동기화| WL[Workload EKS<br/>*.likelion.uk]
+  WAS -->|실패 로그| ERR[iris-error-check-agent]
+  WAS -->|진단 결과| FIX[iris-code-fix-agent]
+  FIX -.핫픽스 PR·자동 머지.-> REPO[(사용자 레포)]
+  INFRA[iris-infra] -.프로비저닝.-> ARGO
+  ANA[iris-code-analyzer-agent<br/>개발 중 · 미연동]
+  style ERR fill:#f96,stroke:#333,stroke-width:2px
 ```
 
-OpenCode에서 `iris_diagnosis` 에이전트의 `/models` 메뉴로 GPT 또는 Sakana 모델을 고릅니다. 서비스 연동은 `GET /models`로 목록을 조회하고 `POST /diagnose?model=sakana/fugu`로 선택값을 전달합니다. 선택값이 없으면 기존 `.env` 모델을 사용합니다. 키 없는 모델은 API 목록에서 `available=false`이며 OpenCode 선택 목록에는 나타나지 않습니다. 대화형 화면과 검증된 서비스 진단 절차의 차이, 프론트·백엔드 연결 예시는 [모델 선택 문서](docs/MODEL_SELECTION.md)를 참고하세요.
+- 호출자: [iris-was](https://github.com/2026-softbank-1/iris-was) Control API가 배포 실패(`FAILED`·`ROLLED_BACK`·`MANUAL_INTERVENTION`) 확정 시 자동으로 `POST /diagnose`를 호출하고 결과를 DB에 저장한다([ADR 0020](https://github.com/2026-softbank-1/iris-was/blob/main/docs/adr/0020-ai-error-diagnosis-via-agent-server.md)).
+- 진단 결과는 WAS를 거쳐 [iris-code-fix-agent](https://github.com/2026-softbank-1/iris-code-fix-agent)의 수정 후보 입력이 된다.
 
-기존 `.env`의 LLM 설정을 그대로 사용합니다. 의존성을 업데이트한 후 실행합니다.
+## 동작 흐름
 
-```bat
-.venv\Scripts\python.exe -m pip install -r requirements-dev.lock
-.venv\Scripts\python.exe -m pip install --no-build-isolation --no-deps -e .
-run_api.cmd --dev
+```mermaid
+flowchart LR
+  IN[WAS 요청<br/>로그 · 배포 메타데이터<br/>소스 presigned URL] --> PRE[입력 검증<br/>비밀값 마스킹<br/>근거 ID EV 부여]
+  PRE --> LLM[LLM 로그 진단]
+  LLM -->|코드 확인 필요| SRC[S3 tar.gz에서<br/>관련 파일만 선택 · SC 부여]
+  SRC --> LLM2[로그+소스 재진단]
+  LLM --> VAL[스키마 · 근거 참조 검증]
+  LLM2 --> VAL
+  VAL --> OUT[diagnosis-result.v3<br/>관찰 사실 · 원인 후보 · 근거<br/>다음 확인 · 해결안 · 한계]
 ```
 
-OpenCode로 동일한 API를 실행하려면 Node.js/npm과 Git이 설치된 상태에서 다음 명령을 사용합니다. OpenCode 1.18.34는 프로젝트의 `.runtime` 폴더에 설치됩니다. 설치는 최초 한 번만 필요합니다.
+- 상태는 `diagnosed`·`insufficient_evidence`·`no_failure_evidence` 세 가지다. 근거가 부족하면 원인을 단정하지 않는다.
+- 모든 주장은 서버가 부여한 로그(`EV`)·소스(`SC`) 근거 ID에 연결돼야 하며, 참조가 깨진 응답은 거절한다.
+- 해결안은 적용 조건·수정 예시·검증·롤백을 담은 제안이다. 실행하지 않는다(`remediation_execution=not_executed`).
+- 소스를 못 읽어도 로그 진단은 유지한다.
 
-```bat
-install_opencode.cmd
-run_api.cmd --runtime opencode --dev
-```
+### 진단 모드
 
-API가 전용 OpenCode 프로세스를 시작하고 종료 시 정리합니다. 기존 `.env`의 `LLM_API_KEY`, `LLM_MODEL`을 사용합니다. 자세한 내용은 [OpenCode 실행·검증 문서](docs/OPENCODE_INTEGRATION.md)를 참고하세요.
+| 모드 | 설정 | 동작 | 상세 |
+| --- | --- | --- | --- |
+| standard | `AGENT_DIAGNOSIS_MODE=standard` (기본) | 로그 진단 후 필요하면 소스 재진단, LLM 최대 2회 | [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md) |
+| adaptive | `AGENT_DIAGNOSIS_MODE=adaptive` | 명확한 Node `ENOENT`면 소스를 먼저 읽어 1회 진단, 아니면 standard | [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md) |
+| graph_compact | `AGENT_DIAGNOSIS_MODE=graph_compact` (운영) | 지원 오류는 SHACL/SPARQL 후보를 LLM이 짧게 채택·보류, 해결안은 서버 템플릿 조립. 미지원은 adaptive | [GRAPH_COMPACT](docs/GRAPH_COMPACT.md) |
+| 지식 그래프 shadow | `AGENT_KG_MODE=shadow` (기본 off) | 확정된 결과를 RDF로 옮겨 SHACL 검증·내부 저장. 응답·판단에 영향 없음 | [KNOWLEDGE_GRAPH_SHADOW](docs/KNOWLEDGE_GRAPH_SHADOW.md) |
 
-Docker에서는 API와 OpenCode를 하나의 Linux 이미지로 실행할 수 있습니다. `.env`의 `AGENT_API_KEY`를 별도의 ASCII 32자 이상 키로 설정한 뒤 실행합니다.
+평가(합성 사례, 개발용): 20건 상태 정확도 100%·원인 식별 11/12([합성 평가](docs/SYNTHETIC_DIAGNOSIS_EVALUATION_2026-10-03.md)), graph_compact 지원 사례 4건 응답 중앙값 20.5초→3.0초([GRAPH_COMPACT](docs/GRAPH_COMPACT.md)). 실제 운영 장애 정확도는 측정하지 않았다.
 
-```bat
-docker build -t iris-error-check-agent:0.5.0 .
-docker run --rm --name iris-error-check-agent --env-file .env -e AGENT_RUNTIME=opencode -p 127.0.0.1:8001:8001 --stop-timeout 280 iris-error-check-agent:0.5.0
-```
+## 기술 스택
 
-이미지에는 `.env`를 포함하지 않습니다. 자세한 구성과 직접 호출 모드 전환은 [Docker 실행 문서](docs/DOCKER.md)를 참고하세요.
+- Python 3.11+ (이미지는 3.12), FastAPI·Uvicorn, Pydantic v2, httpx, jsonschema, rdflib·pySHACL(그래프 모드)
+- LLM: OpenAI Responses API 직접 호출 또는 OpenCode 1.18.34 경유. Sakana 모델 선택 가능
 
-개발 모드는 `127.0.0.1:8001`에서 실행됩니다. [Swagger UI](http://127.0.0.1:8001/docs)에서 요청 규격을 확인할 수 있습니다. 다른 CMD 창에서 합성 로그·소스 샘플을 호출합니다. **실제 LLM 사용량이 발생합니다.**
-
-```bat
-curl.exe -X POST http://127.0.0.1:8001/diagnose -H "Content-Type: application/json" --data-binary "@examples/backend-log-only.request.json"
-```
-
-서버 모드에서는 `.env`에 별도의 `AGENT_API_KEY`(공백 없는 ASCII 32자 이상)를 설정하고 `run_api.cmd`로 실행합니다. 호출자는 `X-API-Key` 헤더로 인증합니다. `--dev`는 루프백 전용이며, 운영 백엔드용 키를 프론트엔드 번들에 넣지 않습니다.
-
-API 결과는 `diagnosis-result.v3`, 기존 CLI 결과는 `diagnosis-result.v2`입니다. API는 **`success/message/data` 전체 JSON**, `data` 내부 객체, 기존 `diagnosis/source_snapshot` 형식을 모두 받습니다. 새 입력 형식과 S3 규격은 [백엔드 JSON 연동 문서](docs/BACKEND_JSON_V04.md), 기존 파일 직접 전달 방식은 [API·소스 분석 개발 문서](docs/API_SOURCE_ANALYSIS.md)를 참고하세요.
-
-`examples/backend-envelope.request.json`은 합의 중인 JSON 전체 예시입니다. `source.downloadUrl`과 `expiresAt`을 실제 S3 presigned URL과 만료 시각으로 바꾸면 코드 분석이 필요할 때만 다운로드합니다. 소스 없이 테스트할 때는 위의 `backend-log-only.request.json`을 사용합니다. Git 커밋 SHA는 선택 항목이며, `AGENT_SOURCE_ALLOWED_HOSTS`에 허용할 S3 버킷 호스트를 지정할 수 있습니다.
-
-## CMD에서 바로 실행
-
-프로젝트의 `.venv` 설치와 `.env` 입력을 완료했다면 Windows CMD에서 실행합니다.
-
-```bat
-cd /d "C:\Users\rlagh\Desktop\소뱅 해커톤\AI_Error_Check_Agent"
-run_diagnosis.cmd
-```
-
-기본 샘플은 `DATABASE_URL`을 읽지 못한 가상 로그입니다. OpenCode 설치·실행이나 모델 프로필 파일 없이 실제 LLM이 진단합니다. 결과 JSON은 터미널에 출력되며, `job_status`, `analysis.summary`, `analysis.hypotheses`, `analysis.next_checks`, `analysis.remediation`을 확인하면 됩니다.
-
-파일로 저장하거나 다른 로그를 사용하려면 다음처럼 실행합니다. 출력 파일명은 매번 새 이름을 사용하세요.
-
-```bat
-run_diagnosis.cmd --request examples\configuration.request.json --output results\diagnosis-001.json
-run_diagnosis.cmd --request examples\exit-code-only.request.json
-run_diagnosis.cmd --request examples\no-failure-evidence.request.json
-```
-
-같은 기능을 Python 모듈로 직접 실행할 수도 있습니다.
-
-```bat
-.venv\Scripts\python.exe -m ai_error_check_agent diagnose --request examples\configuration.request.json
-```
-
-`.env`에는 다음 네 값을 입력합니다. 기존 키는 그대로 유지하세요.
-
-```dotenv
-LLM_API_KEY=발급받은_API_키
-LLM_PROVIDER=openai
-LLM_MODEL=gpt-6.1-sol
-LLM_BASE_URL=https://api.openai.com/v1
-```
-
-선택 설정은 `LLM_TIMEOUT_SECONDS=60`, `LLM_MAX_OUTPUT_TOKENS=4096`, `LLM_REASONING_EFFORT=low`입니다. 출력 토큰 한도에는 추론 토큰도 포함됩니다. 현재 디렉터리의 `.env`를 읽으며 다른 파일은 `--env-file`로 지정합니다. 동일 이름의 프로세스 환경변수가 있으면 그 값이 우선합니다. 쉘 명령 실행이나 `${...}` 확장은 하지 않습니다.
-
-OpenAI Fast 모드는 `.env`에 `OPENAI_SERVICE_TIER=fast`를 설정하고 에이전트 서버를 재시작하면 사용합니다. 기존 백엔드 요청·응답 필드와 모델 ID, 추론 노력 설정은 유지합니다. `AGENT_REASONING_MODE=off|assist`와 독립적으로 동작하며, 소스 재분석을 포함한 모든 OpenAI 호출에 적용됩니다. Sakana 모델에는 전달하지 않습니다.
-
-`OPENAI_SERVICE_TIER`를 비워 두거나 생략하면 기존처럼 티어를 요청에 넣지 않아 OpenAI 프로젝트 기본 설정을 따릅니다. `auto`도 프로젝트 설정을 따르고, `default`는 일반 처리를 명시합니다. `fast`와 `priority`는 Fast 모드 요청이며 일반 처리보다 토큰 요금이 높습니다. direct 어댑터는 `service_tier`로 전달하고, 관리형 OpenCode 설정은 SDK 호환성을 위해 `fast`를 동등한 `serviceTier: "priority"`로 전달합니다. 서버가 관리하지 않는 레거시 `--profile` OpenCode 실행은 해당 외부 런타임에서 별도 설정해야 합니다.
-
-실제 처리 티어는 제공자 상황에 따라 요청과 다를 수 있습니다. direct 어댑터는 응답의 티어를 내부 `reported_service_tier`와 INFO 로그 `openai_service_tier`에 기록하며, 응답에 없으면 `unknown`으로 남깁니다. 공개 진단 JSON에는 필드를 추가하지 않습니다. 미지원 모델·계정의 요청 거절은 기존 오류 형식으로 반환하며 자동 재시도하지 않습니다. 설정·HTTP 요청·두 단계 진단·공개 스키마 호환성은 모의 응답으로 검증하며, 계정별 Fast 사용 가능 여부와 실제 속도는 실제 호출로 별도 확인해야 합니다. [OpenAI Fast 모드](https://developers.openai.com/api/docs/guides/fast-mode), [OpenCode 모델 설정](https://opencode.ai/docs/models/), [AI SDK OpenAI 옵션](https://ai-sdk.dev/providers/ai-sdk-providers/openai)을 참고하세요.
-
-API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않습니다. 직접 호출은 공식 OpenAI 및 Sakana API 주소를 지원합니다. 호출 실패 시 `error.code`를 확인하세요. `MODEL_AUTH_ERROR`는 키·권한, `MODEL_NOT_FOUND`는 모델 ID·접근 권한, `MODEL_RATE_LIMIT`는 사용량·결제·요청 제한 확인이 필요합니다.
-
-모델 사용량이 발생하며 자동 재시도는 하지 않습니다. [OpenAI 모델 문서](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [구조화 출력 문서](https://developers.openai.com/api/docs/guides/structured-outputs)를 기준으로 구현했습니다.
-
-## 구현 범위
-
-- 엄격한 입력 규격과 빈 로그·청크 중복·크기 상한 검사
-- 비밀값 마스킹, 물리적 줄 위치·출처·근거 ID 유지
-- 설계안 v0.1 부록 A/B를 옮긴 프롬프트와 JSON Schema
-- `.env` 로딩과 OpenAI Responses API 직접 호출, 도구 미제공, 응답 저장 비활성화
-- 진단 가능·정보 부족·실패 근거 없음의 세 상태 및 참조 관계 검증
-- 원인·로그 근거에 연결된 수정 코드·설정·명령 예시와 적용 조건, 검증 절차·기대 결과, 롤백·주의점
-- 수정 예시의 자리표시자·근거·대상 검사와 비밀값이 포함된 예시 거절
-- API 인증·CORS 허용 목록·요청 크기·동시 처리 제한과 Swagger UI
-- 백엔드 제공 소스의 조건부 선택, 파일·줄 번호·로그/코드 근거 연결, 소스 실패 시 로그 진단 유지
-- OpenCode 전용 에이전트·버전·권한 사전 확인, 요청별 세션·모델 지정
-- 진단 시간 초과 시 중단 요청, 세션 삭제와 정리 실패 기록
-- 실제 모델 메타데이터·사용량·프롬프트 해시·입력 스냅샷 해시 기록
-- 외부 모델을 호출하지 않는 HTTP 계약 테스트와 개발용 가상 사례
-
-가상 입력으로 연결을 확인하는 것과 실제 장애 정확도를 평가하는 것은 별개입니다. 자동 테스트는 HTTP 계약·근거 검증·오류 처리를 확인합니다. OpenCode 실제 연동 검증의 범위와 결과는 [검증 보고서](docs/OPENCODE_TEST_REPORT_2026-10-02.md)에 기록하며, 실제 장애 성능 평가는 별도로 수행해야 합니다.
-
-## 설치
-
-Python 3.11 이상을 사용합니다. 아래는 저장소 루트에서 실행하는 PowerShell 예시입니다.
-
-```powershell
-python -m venv .venv
-& ./.venv/Scripts/python.exe -m pip install -e '.[dev]'
-```
-
-Linux/macOS에서는 `.venv/bin/python`을 사용합니다. 패키지 이름은 `AI_Error_Check_Agent`, Python import 이름은 `ai_error_check_agent`, 실행 명령은 `ai-error-check`입니다.
-
-검증 때 사용한 의존성 버전은 `requirements-dev.lock`에 기록했습니다. 같은 버전으로 설치하려면 먼저 `python -m pip install -r requirements-dev.lock`, 이어서 `python -m pip install --no-build-isolation --no-deps -e .`를 실행합니다.
-
-## 모델 없이 먼저 확인
-
-```powershell
-& ./.venv/Scripts/python.exe -m ai_error_check_agent prepare --request examples/configuration.request.json --output results/prepared.json
-& ./.venv/Scripts/python.exe -m ai_error_check_agent validate --request examples/configuration.request.json --analysis examples/configuration.analysis.json
-& ./.venv/Scripts/python.exe -m pytest -q
-```
-
-`prepare`는 마스킹한 입력과 근거 매핑을 출력합니다. `validate`는 주어진 답변의 구조와 참조를 검사합니다. 두 명령은 모델을 호출하거나 원인을 추론하지 않습니다. 출력 파일이 이미 있으면 덮어쓰지 않으므로 재실행 시 새 파일명을 사용합니다.
-
-`examples/`의 로그와 참조 답변은 모두 **가상 개발 사례**입니다. 참조 답변을 모델 입력에 넣지 않습니다. 실제 장애 성능 평가에 사용할 미사용 사례는 별도로 확보해야 합니다.
-
-## 선택: 기존 OpenCode 실행기 연결
-
-이 절은 기존 CLI에서 직접 관리하는 OpenCode 서버를 `--profile`로 연결할 때만 적용됩니다. 최신 API는 위의 `run_api.cmd --runtime opencode`로 실행하면 별도 프로필 없이 서버를 자동 관리합니다.
-
-1. 팀에서 사용할 OpenCode 버전을 설치·고정하고 공급자 인증을 설정합니다. 모델 API 키는 OpenCode 실행 환경에서 관리합니다.
-2. 개인 설정·프로젝트 소스·스킬·플러그인이 없는 전용 실행 환경을 준비합니다. `config/opencode.json`을 적용하고 `127.0.0.1:4096`에서 `opencode serve`를 실행합니다. 상위 디렉터리나 전역 설정이 병합되지 않는지 확인합니다. 단순히 `OPENCODE_CONFIG`만 지정해도 격리가 완료되는 것은 아닙니다.
-3. `config/model-profile.example.json`을 별도 파일로 복사하고 실제 `provider_id`, `model_id`, 설치한 `expected_runtime_version`을 입력합니다. 예시 문자열은 사용 가능한 모델 ID가 아닙니다.
-4. OpenCode 서버에 HTTP 인증을 설정했다면 `AI_ERROR_OPENCODE_USERNAME`, `AI_ERROR_OPENCODE_PASSWORD`를 프로세스 환경변수로 맞춥니다. 기존 OpenCode 실행 경로에서는 `.env`를 자동 로딩하지 않습니다.
-5. 가상 로그부터 실행해 결과와 정리 상태를 확인합니다.
-
-```powershell
-& ./.venv/Scripts/python.exe -m ai_error_check_agent diagnose --request examples/configuration.request.json --profile config/model-profile.local.json --output results/diagnosis-001.json
-```
-
-모델 프로필의 ID는 요청의 `model_profile_id`와 같아야 합니다. 기본 모델을 추측하거나 다른 제공자로 전환하지 않습니다. 이 단계는 개인 로컬 실험용으로 loopback 런타임만 받습니다. 공유 런타임의 동시 실행은 지원하지 않습니다.
-
-OpenCode는 사전 설정 검사 외에 실제 버전별 동작 확인이 필요합니다. 승인된 설정을 유지하는 별도 프로세스에서만 실행하고, 작업 도중 설정을 변경하지 않습니다. 기본 build 에이전트를 사용하지 않습니다.
-
-참고: [OpenCode Server](https://opencode.ai/docs/server/), [Config](https://opencode.ai/docs/config/), [Permissions](https://opencode.ai/docs/permissions/).
-
-## 개발 사례 반복 평가
-
-실제 모델 연결을 확인한 뒤 가상 개발 사례 3개를 각각 3회 실행할 수 있습니다. 아래 명령은 모델을 호출하므로 사용량이 발생합니다.
-
-```powershell
-& ./.venv/Scripts/python.exe -m ai_error_check_agent.evaluate --manifest evaluation/development.json --repeats 3 --output results/evaluation-001.json
-```
-
-평가 결과는 상태 일치율·실행 오류 수·응답 시간과 각 실행 원본 결과를 포함합니다. 정답 상태는 모델 입력과 분리됩니다. 가상 개발 사례 점수를 실제 장애 정확도로 사용하지 않습니다. 런타임 정리 상태가 불명확하면 나머지 실행을 중단하고 계획 횟수와 완료 횟수를 따로 기록합니다.
-
-오답, 실행 오류, 런타임 정리 중단이 있으면 평가 명령은 종료 코드 1을 반환합니다.
-
-오류 유형과 경계 조건 14개를 추가로 평가하려면 아래 명령을 실행합니다. 실제 API를 14회 호출하므로 사용량이 발생합니다. 결과 디렉터리는 새 이름으로 지정하세요.
-
-```bat
-.venv\Scripts\python.exe evaluation\run_comprehensive.py --output-dir results\extended-evaluation-001
-```
-
-확장 평가에는 의존성·컴파일·시작 명령·포트·외부 연결·권한·메모리·헬스 체크·마이그레이션 오류, 후속 회복, 누락 로그, 로그 안의 악성 지시, 가상 비밀값 마스킹이 포함됩니다. 상태·주요 원인 분류·근거 ID·원래 배포 상태 보존을 검사하고 사례마다 결과를 저장합니다. 원인에 대한 설명과 다음 확인 방법의 의미적 적합성은 별도로 검토해야 합니다.
-
-상세 해결안 추가 전인 v0.1의 2026-10-02 실행 결과와 제한은 [AI 테스트 보고서](docs/AI_TEST_REPORT_2026-10-02.md)에 기록했습니다. v0.2의 기능과 검증 결과는 [상세 해결안 안내](docs/REMEDIATION_V2.md)를 참고하세요.
-
-최종 전체 회귀 평가에는 기본 사례·확장 사례·종료 코드 137 단독·예상된 테스트 오류를 포함한 19개 시나리오가 있습니다. 회복 사례를 3회 반복하므로 총 21회 호출합니다.
-
-```bat
-.venv\Scripts\python.exe evaluation\run_comprehensive.py --manifest evaluation\full-regression.json --output-dir results\full-regression-001
-```
-
-## 결과와 상태
-
-`analysis`는 모델의 진단 내용이며 나머지는 실행 코드가 채웁니다.
-
-CLI 출력은 `diagnosis-result.v2`입니다. CLI 입력은 기존 `diagnosis-request.v1`을 유지합니다. API는 이를 감싼 요청과 `diagnosis-result.v3` 응답을 사용합니다. `analysis.remediation`이 필수이므로 백엔드의 결과 DTO와 화면에서 해당 필드를 처리해야 합니다. v0.1의 분석 JSON은 현재 `validate` 명령을 통과하지 않습니다.
-
-| 필드 | 의미 |
-| --- | --- |
-| `job_status` | `succeeded`, `failed`, `timed_out` |
-| `analysis.analysis_status` | `diagnosed`, `insufficient_evidence`, `no_failure_evidence` |
-| `analysis.remediation` | 해결안 상태, 수정 예시, 적용 조건, 검증·롤백·주의점 |
-| `remediation_execution` | 항상 `not_executed`: 제안한 코드·명령을 실행하지 않음 |
-| `evidence` | 서버가 만든 ID에 해당하는 마스킹된 로그·원본 위치 |
-| `deployment_context` | 원래 배포 상태의 스냅샷. 진단 결과로 변경하지 않음 |
-| `execution` | 모델·시간·사용량·버전·정리 상태 |
-| `input_limitations` | 누락·마스킹 등 전처리기가 확인한 제약 |
-
-정보 부족과 실패 근거 없음도 정상적인 진단 결과면 `job_status=succeeded`입니다. 모델 오류·무효 응답에는 가짜 진단을 채우지 않습니다. 근거 ID 검증만으로 주장과 로그의 의미적 일치가 보장되지는 않습니다.
-
-## 상세 해결안 확인
-
-기존 `run_diagnosis.cmd` 명령을 그대로 실행하면 `analysis.remediation`도 반환됩니다. 추가 설정은 필요하지 않습니다.
-
-- `plans[].apply_when`: 수정 전에 확인할 적용 조건
-- `plans[].changes[]`: `code`, `configuration`, `command` 중 필요한 수정 예시, 수정 대상과 자리표시자 설명
-- `plans[].verification[]`: 수정 후 순서대로 확인할 방법과 `expected_result` 성공 기준
-- `plans[].rollback`, `plans[].risks`: 되돌리는 절차와 변경 영향
-
-예시는 실제 원본 코드를 열어 만든 패치가 아니므로 `snippet_kind=template`입니다. `{{DATABASE_URL}}` 같은 자리표시자를 실제 환경에 맞게 채우고 적용 조건을 확인합니다. 로그에서 확인한 대상은 `target_known=true`, 확인하지 못한 대상은 `false`입니다. 이는 대상 문자열이 로그에 있다는 뜻이며 해당 파일이나 설정이 올바르다는 보장은 아닙니다.
-
-원인을 제시할 수 있으면 `status=proposed`로 상세 해결안을 제공합니다. 원인 근거가 부족하면 `needs_more_evidence`, 관련 실패 근거가 없으면 `not_needed`이며 두 경우 모두 `plans=[]`입니다. 코드 오류에는 코드 예시, 설정 오류에는 설정 예시처럼 상황에 필요한 종류를 제공합니다.
-
-상세 해결안 전용 합성 사례 9개로 실제 API를 평가하려면 다음을 실행합니다. 호출 사용량이 발생하며 출력 디렉터리는 새 이름을 사용합니다.
-
-```bat
-.venv\Scripts\python.exe evaluation\run_comprehensive.py --manifest evaluation\remediation.json --output-dir results\remediation-evaluation-001
-```
-
-직접 API 호출의 시간 초과는 HTTP 연결을 종료하지만 제공자 측 생성 취소를 확인하지 못할 수 있습니다. 이 경우 `abort_confirmed=false`, `cleanup_status=remote_completion_unknown`을 기록하고 평가 반복을 중단합니다. OpenCode 경로에서 `runtime_reusable=false` 또는 정리 실패가 발생하면 전용 프로세스와 잔여 세션을 확인해야 합니다.
-
-## 초기 버전의 제한과 설계안 대비 차이
-
-- 모든 로그를 보존해 제공하며, 모델 입력 예산을 초과하면 거절합니다. 긴 로그 선택·부분 발췌는 아직 구현하지 않았습니다.
-- 1 MiB·10,000줄·20청크의 수신 상한과 별도로, 기본 로그 JSON 예산은 16 KiB, 전체 프롬프트 예산은 32 KiB입니다. 이는 **바이트 한도**이며 8,000토큰과 같다는 뜻이 아닙니다. 실제 모델 토크나이저·문맥·출력 예산 연결은 후속 과제입니다.
-- 직접 호출은 HTTP 요청을 한 번만 보내며 자동 재시도하지 않습니다. OpenCode 내부 재시도·제목 생성 등에 의한 호출 횟수는 아직 검증하지 않아 해당 경로에서 `provider_call_count=null`로 기록합니다.
-- 직접 호출의 기본 진단 제한시간은 로컬 테스트용 60초입니다. 기존 OpenCode 경로는 30초와 별도 정리 예산 3초를 사용합니다. 설계안의 p95 30초 목표 달성 여부는 측정하지 않았습니다.
-- 규칙은 실패 가능성이 있는 줄을 표시하는 보조 신호입니다. 오류 유형별 상세 규칙·원인 정확도 검증은 실제 로그 확보 후 확장합니다.
-- 마스킹은 알려진 패턴을 대상으로 하며 임의 형식의 모든 비밀값 탐지를 보장하지 않습니다. 실제 로그 공급원의 마스킹 정책과 사례를 보강해야 합니다.
-- 파일 출력은 로컬 진단 기록이며 내구성 있는 작업 큐나 다중 사용자 저장소가 아닙니다. 테넌트·배포 접근 인증, 중복 요청, 재시작 복구, 보존 기간은 2차 서버 단계에 포함합니다.
-
-## 코드 위치
+## 디렉터리 구조
 
 ```text
-src/ai_error_check_agent/
-  agent/              진단 프롬프트와 응답 스키마
-  contracts.py        백엔드 로그 입력 규격
-  preprocessing.py    정규화·마스킹·근거 매핑
-  validation.py       JSON·근거·교차 참조·상태 검사
-  remediation.py      상세 해결안·대상·자리표시자 검사와 수정 예시 보호
-  runtime.py          OpenCode HTTP 어댑터
-  runtime_contract.py 공통 모델 실행 인터페이스
-  direct_api.py       .env 설정과 OpenAI Responses API 직접 호출
-  service.py          diagnose()와 실행 기록
-  cli.py              prepare / validate / diagnose
-  evaluate.py         개발 사례 반복 실행·상태·시간 집계
-config/               전용 런타임 설정과 모델 프로필 예시
-examples/             가상 개발 입력·참조 답변
-evaluation/           모델에 전달하지 않는 개발 평가 정답
-tests/                입력·진단·실패 처리·CLI 테스트
-run_diagnosis.cmd      CMD에서 기본 샘플 또는 지정 로그 진단
+src/ai_error_check_agent/  진단 코어 · API(api.py) · CLI · 그래프(knowledge/)
+config/ examples/          OpenCode 전용 설정 · 합성 요청·참조 답변
+evaluation/ tests/         평가 데이터셋·벤치마크 · pytest
+docs/                      설계·평가·운영 문서
+*.cmd                      Windows 실행 스크립트
 ```
 
-다음 구현은 실제 로그·실제 모델 연결 검증 → 오류 유형별 개발 평가 → Control API와 작업 저장 연결 순서로 진행합니다.
+## 빠른 시작
 
-### 관계 추론 옵션
+macOS·Linux 기준. Python 3.11 이상이 필요하다.
 
-`AGENT_REASONING_MODE=assist`를 설정하면 마스킹한 로그와 선택된 코드의 관계를 고정 SPARQL 규칙으로 계산하여 기존 LLM 호출에 전달합니다. 기본값은 `off`이며 백엔드 입력과 공개 v3 응답 규격은 유지합니다. 처리 한도를 넘기면 기존 진단으로 진행합니다. 지원 로그 형식, 세 규칙군, 저장 방식과 비교 평가 명령은 [관계 추론 개발 문서](docs/RELATION_REASONING.md)를 참고하세요.
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.lock
+.venv/bin/pip install --no-build-isolation --no-deps -e .
+cp .env.example .env            # LLM_API_KEY 입력
+.venv/bin/python -m ai_error_check_agent.api --dev   # 127.0.0.1:8001, API 키 없이 루프백 전용
+```
+
+다른 터미널에서 합성 요청을 보낸다. 실제 LLM 사용량이 발생한다. Swagger는 `http://127.0.0.1:8001/docs`다.
+
+```sh
+curl -X POST http://127.0.0.1:8001/diagnose -H 'Content-Type: application/json' \
+  --data-binary @examples/backend-log-only.request.json
+```
+
+Docker(서버 모드, `.env`에 `AGENT_API_KEY` 32자 이상 필요):
+
+```sh
+docker build -t iris-error-check-agent:0.5.0 .
+docker run --rm --env-file .env -e AGENT_RUNTIME=opencode -p 127.0.0.1:8001:8001 --stop-timeout 280 iris-error-check-agent:0.5.0
+```
+
+- 필수 환경변수: `LLM_API_KEY`, `LLM_MODEL`, 서버 모드면 `AGENT_API_KEY`. 나머지는 [.env.example](.env.example).
+- 모델 없이 확인: `.venv/bin/python -m pytest -q`
+- Windows CMD(`run_api.cmd`, `run_diagnosis.cmd`, `run_opencode.cmd`)와 OpenCode·Fast 모드·오류 코드 설명은 [로컬 실행 상세](docs/LOCAL_RUN.md), Docker 상세는 [DOCKER](docs/DOCKER.md).
+
+## 인터페이스
+
+| 엔드포인트 | 용도 |
+| --- | --- |
+| `POST /diagnose[?model=]` | 진단. `X-API-Key` 인증, 본문은 `success/message/data` 전체 또는 `data`만. 동기 응답 |
+| `GET /models` | 선택 가능한 모델 목록 |
+| `GET /healthz` | 생존 확인(모델 호출 없음) |
+
+응답 예시(`diagnosis-result.v3`, [examples/configuration.analysis.json](examples/configuration.analysis.json) 기반 축약):
+
+```json
+{
+  "schema_version": "diagnosis-result.v3",
+  "diagnosis_id": "diag-…",
+  "job_status": "succeeded",
+  "analysis": {
+    "analysis_status": "diagnosed",
+    "summary": "앱이 DATABASE_URL을 읽지 못해 시작에 실패했습니다.",
+    "hypotheses": [{ "id": "H1", "category": "configuration", "support_level": "direct",
+      "statement": "앱 시작 시점에 필수 설정 DATABASE_URL을 확보하지 못했습니다.", "evidence_ids": ["EV000001"],
+      "uncertainty": "설정 미등록, 전달 실패, 앱의 설정 로딩 문제는 현재 로그만으로 구분할 수 없습니다." }],
+    "next_checks": [{ "id": "C1", "target": "실행 환경의 DATABASE_URL 설정" }],
+    "remediation": { "status": "proposed", "plans": [{ "id": "R1", "title": "실행 환경에 DATABASE_URL 등록 및 전달",
+      "changes": [{ "kind": "configuration", "snippet_kind": "template", "snippet": "DATABASE_URL={{DATABASE_URL}}" }] }] },
+    "limitations": ["입력은 앱 시작 로그이며 실제 배포 설정은 확인하지 않았습니다."]
+  },
+  "remediation_execution": "not_executed",
+  "evidence": [{ "id": "EV000001", "stage": "runtime", "stream": "stderr", "text": "ERROR Missing required configuration: DATABASE_URL" }],
+  "source_analysis": { "status": "not_needed" },
+  "error": null
+}
+```
+
+- 요청 계약·S3 소스 규칙·오류 코드: [BACKEND_JSON_V04](docs/BACKEND_JSON_V04.md)
+- 전체 결과 필드와 해결안 구조: [RESULT_SCHEMA](docs/RESULT_SCHEMA.md)
+- 모델 선택: [MODEL_SELECTION](docs/MODEL_SELECTION.md)
+
+## 배포
+
+- 흐름: GitHub Actions(수동) → ECR `iris/error-check-agent` → iris-gitops-environments `platform/aws-dev-management/error-check-agent.yaml`에 digest 커밋 → Argo CD → management EKS iris-platform chart의 `errorAgent`.
+- [deploy-platform.yml](.github/workflows/deploy-platform.yml)은 `workflow_dispatch` 전용이다. main 머지만으로는 배포되지 않는다.
+- 실행 설정(활성화·Secret·모델·환경변수)은 [iris-infra](https://github.com/2026-softbank-1/iris-infra) `clusters/aws-dev-management/values/platform.yaml`의 `errorAgent`가 정한다. 현재 `gpt-6.1-sol`, `AGENT_DIAGNOSIS_MODE=graph_compact`, `OPENAI_SERVICE_TIER=fast`이며 런타임은 이미지 기본값(OpenCode)이다.
+- 키(`LLM_API_KEY`, `AGENT_API_KEY`)는 Secret `iris-error-agent`에서 주입한다. WAS는 클러스터 내부 `iris-platform-error-agent.iris-platform.svc.cluster.local:8001`로 호출한다.
+
+## 현재 상태 / 한계
+
+- 구현: `POST /diagnose`(v3)·`GET /models`·CLI, direct/OpenCode 런타임, S3 소스 조건부 분석, 세 진단 모드와 KG shadow.
+- 운영: management EKS 배포와 WAS 자동 호출까지 연결됐다. 진단 이력·비동기 처리·권한 확인은 WAS가 맡는다.
+- graph_compact 빠른 경로는 Node `ENOENT` 파일 읽기 한 유형만 지원하고, 나머지는 기존 경로로 처리해 10초 안을 보장하지 않는다.
+- 마스킹한 로그 입력이 예산(16 KiB)을 넘으면 거절한다. 긴 로그 발췌는 미구현이다. 동시 처리는 2건이며 초과 시 `429 BUSY`.
+- 마스킹은 알려진 패턴만 대상으로 한다. 평가는 합성 사례 기준이다.
+- 상세 제한·코드 위치: [IMPLEMENTATION_NOTES](docs/IMPLEMENTATION_NOTES.md)
+
+## 문서
+
+- 개발·평가: [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md), [GRAPH_COMPACT](docs/GRAPH_COMPACT.md), [KNOWLEDGE_GRAPH_SHADOW](docs/KNOWLEDGE_GRAPH_SHADOW.md), [RELATION_REASONING](docs/RELATION_REASONING.md)(관계 추론 `AGENT_REASONING_MODE=assist`), [REMEDIATION_V2](docs/REMEDIATION_V2.md), [EVALUATION](docs/EVALUATION.md)
+- 연동·실행: [BACKEND_JSON_V04](docs/BACKEND_JSON_V04.md), [API_SOURCE_ANALYSIS](docs/API_SOURCE_ANALYSIS.md), [OPENCODE_INTEGRATION](docs/OPENCODE_INTEGRATION.md), [DOCKER](docs/DOCKER.md), [LOCAL_RUN](docs/LOCAL_RUN.md)
+- 테스트 보고서: `docs/*_TEST_REPORT_*.md`, [SYNTHETIC_DIAGNOSIS_EVALUATION](docs/SYNTHETIC_DIAGNOSIS_EVALUATION_2026-10-03.md)
