@@ -1,0 +1,12 @@
+PREFIX r: <urn:iris:reasoning:v1:>
+CONSTRUCT {
+ ?id a r:DerivedRelation ; r:kind "failure_followed_by_recovery" ; r:rule "SAME_OPERATION_RECOVERY_V1" ;
+     r:input ?a, ?b ; r:scope ?scope .
+} WHERE {
+ ?a a r:FailureEvent ; r:scope ?scope ; r:instance ?instance ; r:operation ?op ;
+    r:target ?target ; r:group ?group ; r:sequence ?s1 ; r:event_line ?l1 .
+ ?b a r:RecoveryEvent ; r:scope ?scope ; r:instance ?instance ; r:operation ?op ;
+    r:target ?target ; r:group ?group ; r:sequence ?s2 ; r:event_line ?l2 .
+ FILTER(?s2 > ?s1 || (?s2 = ?s1 && ?l2 > ?l1))
+ BIND(IRI(CONCAT("urn:iris:derived:", SHA256(CONCAT("SAME_OPERATION_RECOVERY_V1", STR(?a), STR(?b))))) AS ?id)
+}

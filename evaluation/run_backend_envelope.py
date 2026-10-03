@@ -16,6 +16,7 @@ from run_api_source import cases as old_cases
 
 from ai_error_check_agent.api import create_app
 from ai_error_check_agent.direct_api import OpenAIResponsesRuntime, load_direct_settings
+from ai_error_check_agent.knowledge.shadow import KnowledgeSettings
 from ai_error_check_agent.opencode_process import ManagedOpenCode
 
 URL = "https://iris-example.s3.ap-northeast-2.amazonaws.com/snapshots/demo.tar.gz?X-Amz-Signature=FAKE_SIGNATURE_CANARY"
@@ -73,7 +74,9 @@ def fixture_archive(old):
     return buffer.getvalue()
 
 
-async def evaluate(env_file, output_dir, runtime_factory=None, runtime_name="direct"):
+async def evaluate(
+    env_file, output_dir, runtime_factory=None, runtime_name="direct", knowledge_mode="off"
+):
     output_dir.mkdir(parents=True, exist_ok=False)
     profile, key = load_direct_settings(env_file, "profile-demo-a")
     previous = old_cases()
@@ -103,11 +106,16 @@ async def evaluate(env_file, output_dir, runtime_factory=None, runtime_name="dir
             runtime_factory or (lambda: OpenAIResponsesRuntime(profile, key)),
             dev=True,
             archive_transport=httpx.MockTransport(download),
+            knowledge_settings=KnowledgeSettings(
+                mode=knowledge_mode, output_dir=output_dir / "knowledge"
+            ),
         )
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app), base_url="http://test"
         ) as client:
             response = await client.post("/diagnose", json=payload)
+        if app.state.knowledge_observer is not None:
+            await app.state.knowledge_observer.aclose()
         result = response.json()
         (output_dir / f"{name}.json").write_text(
             json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -137,6 +145,9 @@ async def evaluate(env_file, output_dir, runtime_factory=None, runtime_name="dir
             "downloads": len(downloads),
             "execution": result.get("execution", {}),
         }
+        observer = app.state.knowledge_observer
+        if observer is not None:
+            row["knowledge"] = {"stats": observer.stats, "report": observer.last_report}
         rows.append(row)
         print(
             json.dumps({k: row[k] for k in ("case", "passed", "checks", "downloads")}), flush=True
@@ -152,6 +163,7 @@ async def evaluate(env_file, output_dir, runtime_factory=None, runtime_name="dir
     summary = {
         "model": profile.model_id,
         "runtime": runtime_name,
+        "knowledge_mode": knowledge_mode,
         "planned": len(scenarios),
         "completed": len(rows),
         "passed": sum(row["passed"] for row in rows),
@@ -172,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--runtime", choices=("direct", "opencode"), default="direct")
     parser.add_argument("--opencode-port", type=int, default=4096)
+    parser.add_argument("--knowledge-mode", choices=("off", "shadow"), default="off")
     args = parser.parse_args()
     profile, key = load_direct_settings(args.env_file, "profile-demo-a")
     manager = (
@@ -183,7 +196,11 @@ if __name__ == "__main__":
         raise SystemExit(
             asyncio.run(
                 evaluate(
-                    args.env_file, args.output_dir, server.runtime if server else None, args.runtime
+                    args.env_file,
+                    args.output_dir,
+                    server.runtime if server else None,
+                    args.runtime,
+                    args.knowledge_mode,
                 )
             )
         )

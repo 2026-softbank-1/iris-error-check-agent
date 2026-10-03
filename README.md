@@ -4,6 +4,8 @@ IRIS 배포 로그를 받아 **관찰 사실 → 근거 있는 원인 후보 →
 
 현재 산출물은 **진단 코어, 로컬 CLI, `POST /diagnose` API**입니다. API는 `.env`를 읽어 OpenAI 직접 호출 또는 OpenCode 실행 방식을 선택합니다. 먼저 로그를 분석하고, 필요할 때 **백엔드가 제공한 S3 `.tar.gz` 또는 직접 전달한 소스 파일**에서 관련 범위를 선택해 재분석합니다. 본 서비스의 실제 S3·로그 연결, 사용자별 권한 확인, 비동기 작업 DB·Worker, 대시보드, EKS 배치는 후속 구현 대상입니다.
 
+기존 API 규격을 유지하는 지식 그래프 병행 검증을 추가했습니다. 기본값은 비활성이며 `AGENT_KG_MODE=shadow`에서 RDF 생성·SHACL 검증·내부 저장을 수행합니다. 활성화, 처리 상한, 오프라인 평가와 보관 한계는 [지식 그래프 개발 문서](docs/KNOWLEDGE_GRAPH_SHADOW.md)를 참고하세요.
+
 ## 진단 API 실행 (v0.5.0)
 
 OpenCode 화면과 서비스 API에서 같은 모델 목록을 선택할 수 있습니다. 기존 GPT 설정은 유지하고, Sakana를 쓰려면 `.env`에 `SAKANA_API_KEY`를 추가합니다.
@@ -87,6 +89,12 @@ LLM_BASE_URL=https://api.openai.com/v1
 ```
 
 선택 설정은 `LLM_TIMEOUT_SECONDS=60`, `LLM_MAX_OUTPUT_TOKENS=4096`, `LLM_REASONING_EFFORT=low`입니다. 출력 토큰 한도에는 추론 토큰도 포함됩니다. 현재 디렉터리의 `.env`를 읽으며 다른 파일은 `--env-file`로 지정합니다. 동일 이름의 프로세스 환경변수가 있으면 그 값이 우선합니다. 쉘 명령 실행이나 `${...}` 확장은 하지 않습니다.
+
+OpenAI Fast 모드는 `.env`에 `OPENAI_SERVICE_TIER=fast`를 설정하고 에이전트 서버를 재시작하면 사용합니다. 기존 백엔드 요청·응답 필드와 모델 ID, 추론 노력 설정은 유지합니다. `AGENT_REASONING_MODE=off|assist`와 독립적으로 동작하며, 소스 재분석을 포함한 모든 OpenAI 호출에 적용됩니다. Sakana 모델에는 전달하지 않습니다.
+
+`OPENAI_SERVICE_TIER`를 비워 두거나 생략하면 기존처럼 티어를 요청에 넣지 않아 OpenAI 프로젝트 기본 설정을 따릅니다. `auto`도 프로젝트 설정을 따르고, `default`는 일반 처리를 명시합니다. `fast`와 `priority`는 Fast 모드 요청이며 일반 처리보다 토큰 요금이 높습니다. direct 어댑터는 `service_tier`로 전달하고, 관리형 OpenCode 설정은 SDK 호환성을 위해 `fast`를 동등한 `serviceTier: "priority"`로 전달합니다. 서버가 관리하지 않는 레거시 `--profile` OpenCode 실행은 해당 외부 런타임에서 별도 설정해야 합니다.
+
+실제 처리 티어는 제공자 상황에 따라 요청과 다를 수 있습니다. direct 어댑터는 응답의 티어를 내부 `reported_service_tier`와 INFO 로그 `openai_service_tier`에 기록하며, 응답에 없으면 `unknown`으로 남깁니다. 공개 진단 JSON에는 필드를 추가하지 않습니다. 미지원 모델·계정의 요청 거절은 기존 오류 형식으로 반환하며 자동 재시도하지 않습니다. 설정·HTTP 요청·두 단계 진단·공개 스키마 호환성은 모의 응답으로 검증하며, 계정별 Fast 사용 가능 여부와 실제 속도는 실제 호출로 별도 확인해야 합니다. [OpenAI Fast 모드](https://developers.openai.com/api/docs/guides/fast-mode), [OpenCode 모델 설정](https://opencode.ai/docs/models/), [AI SDK OpenAI 옵션](https://ai-sdk.dev/providers/ai-sdk-providers/openai)을 참고하세요.
 
 API 키는 요청 인증 헤더에만 쓰며 결과·로그에 출력하지 않습니다. 직접 호출은 공식 OpenAI 및 Sakana API 주소를 지원합니다. 호출 실패 시 `error.code`를 확인하세요. `MODEL_AUTH_ERROR`는 키·권한, `MODEL_NOT_FOUND`는 모델 ID·접근 권한, `MODEL_RATE_LIMIT`는 사용량·결제·요청 제한 확인이 필요합니다.
 
@@ -256,3 +264,7 @@ run_diagnosis.cmd      CMD에서 기본 샘플 또는 지정 로그 진단
 ```
 
 다음 구현은 실제 로그·실제 모델 연결 검증 → 오류 유형별 개발 평가 → Control API와 작업 저장 연결 순서로 진행합니다.
+
+### 관계 추론 옵션
+
+`AGENT_REASONING_MODE=assist`를 설정하면 마스킹한 로그와 선택된 코드의 관계를 고정 SPARQL 규칙으로 계산하여 기존 LLM 호출에 전달합니다. 기본값은 `off`이며 백엔드 입력과 공개 v3 응답 규격은 유지합니다. 처리 한도를 넘기면 기존 진단으로 진행합니다. 지원 로그 형식, 세 규칙군, 저장 방식과 비교 평가 명령은 [관계 추론 개발 문서](docs/RELATION_REASONING.md)를 참고하세요.

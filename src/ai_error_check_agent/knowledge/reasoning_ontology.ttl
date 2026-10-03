@@ -1,0 +1,19 @@
+@prefix r: <urn:iris:reasoning:v1:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+r:Ontology a owl:Ontology ; owl:versionInfo "reasoning-ontology.v1" .
+r:Fact a rdfs:Class .
+r:ProcessInstance a rdfs:Class .
+r:Evidence a rdfs:Class .
+r:DerivedRelation a rdfs:Class .
+r:ListenerObservation a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:ListenerSnapshot a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:ProbeObservation a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:FailureEvent a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:RecoveryEvent a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:ConfigContract a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:ConfigError a rdfs:Class ; rdfs:subClassOf r:Fact .
+r:ConfigReference a rdfs:Class ; rdfs:subClassOf r:Fact .
+# Relations are bounded deductions from supplied observations, never confirmed causes.
+r:input a owl:ObjectProperty .
+r:evidence a owl:ObjectProperty .

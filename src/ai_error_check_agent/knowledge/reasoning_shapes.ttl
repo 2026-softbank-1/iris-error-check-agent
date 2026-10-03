@@ -1,0 +1,14 @@
+@prefix r: <urn:iris:reasoning:v1:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+r:FactShape a sh:NodeShape ; sh:targetClass r:Fact ;
+ sh:property [ sh:path r:scope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path r:evidence ; sh:minCount 1 ; sh:class r:Evidence ] ;
+ sh:property [ sh:path r:extractor_version ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path r:port ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ; sh:maxInclusive 65535 ] ;
+ sh:property [ sh:path r:sequence ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] .
+r:RelationShape a sh:NodeShape ; sh:targetClass r:DerivedRelation ;
+ sh:property [ sh:path r:scope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path r:input ; sh:minCount 2 ; sh:nodeKind sh:IRI ] ;
+ sh:property [ sh:path r:rule ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path r:kind ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .

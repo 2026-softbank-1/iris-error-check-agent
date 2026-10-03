@@ -1,0 +1,12 @@
+PREFIX r: <urn:iris:reasoning:v1:>
+CONSTRUCT {
+ ?id a r:DerivedRelation ; r:kind "configuration_mismatch_candidate" ; r:rule "CONFIG_FAILURE_V1" ;
+     r:input ?diff, ?error ; r:scope ?scope .
+} WHERE {
+ ?diff r:kind "configuration_reference_difference" ; r:scope ?scope ; r:input ?contract, ?code .
+ ?contract a r:ConfigContract ; r:path ?path ; r:instance ?instance ; r:role ?role .
+ ?code a r:ConfigReference ; r:key ?actual .
+ ?error a r:ConfigError ; r:scope ?scope ; r:instance ?instance ; r:path ?path ;
+        r:role ?role ; r:key ?actual .
+ BIND(IRI(CONCAT("urn:iris:derived:", SHA256(CONCAT("CONFIG_FAILURE_V1", STR(?diff), STR(?error))))) AS ?id)
+}

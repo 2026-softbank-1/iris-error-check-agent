@@ -1,0 +1,6085 @@
+{
+  "version": "synthetic-incidents.v1",
+  "purpose": "relation-reasoning.v1",
+  "split": "test",
+  "limitations": [
+    "Authored synthetic cases; not production accuracy.",
+    "Development and test share rule families and supported grammar; test is not an independent external benchmark.",
+    "Relation labels cover these scoped derived claims and EV/SC anchors, not every ontology edge.",
+    "Regex scoring is only a proxy for semantic root-cause accuracy."
+  ],
+  "cases": [
+    {
+      "id": "test-001",
+      "name": "fault-0-0",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-1",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-0"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-0 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-0 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-002",
+      "name": "fault-1-0",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-2",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-0"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "healthcheck process_instance=worker-test-0 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-0 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-003",
+      "name": "fault-2-0",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-3",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-0 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_error process_instance=worker-test-0 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000001"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-004",
+      "name": "fault-3-0",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-4",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_contract process_instance=worker-test-0 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_error process_instance=worker-test-0 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-005",
+      "name": "counterexample-4-0",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-5",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-0"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-0 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-006",
+      "name": "counterexample-5-0",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-6",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-0 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment and health check succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-007",
+      "name": "healthy-6-0",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-7",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-0 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-008",
+      "name": "healthy-7-0",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-8",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-0"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-0 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "All application health checks passed; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-009",
+      "name": "insufficient-8-0",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-9",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-010",
+      "name": "insufficient-9-0",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-10",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "debug scheduler tick; nothing failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 0
+      }
+    },
+    {
+      "id": "test-011",
+      "name": "fault-0-1",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-11",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-1"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-1 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-1 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-012",
+      "name": "fault-1-1",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-12",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-1"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "healthcheck process_instance=worker-test-1 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-1 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005",
+            "EV000006"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-013",
+      "name": "fault-2-1",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-13",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-1 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_error process_instance=worker-test-1 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-014",
+      "name": "fault-3-1",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-14",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_contract process_instance=worker-test-1 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "config_error process_instance=worker-test-1 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-015",
+      "name": "counterexample-4-1",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-15",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-1"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-1 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-016",
+      "name": "counterexample-5-1",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-16",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-1 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment and health check succeeded."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-017",
+      "name": "healthy-6-1",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-17",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-1 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-018",
+      "name": "healthy-7-1",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-18",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-1"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-1 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "All application health checks passed; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-019",
+      "name": "insufficient-8-1",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-19",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-020",
+      "name": "insufficient-9-1",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-20",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "listener process_instance=old-instance port=9000 attempt=old-attempt"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 1
+      }
+    },
+    {
+      "id": "test-021",
+      "name": "fault-0-2",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-21",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-2"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-2 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-2 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-022",
+      "name": "fault-1-2",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-22",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-2"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "healthcheck process_instance=worker-test-2 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-2 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-023",
+      "name": "fault-2-2",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-23",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-2 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_error process_instance=worker-test-2 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000001"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-024",
+      "name": "fault-3-2",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-24",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_contract process_instance=worker-test-2 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_error process_instance=worker-test-2 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-025",
+      "name": "counterexample-4-2",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-25",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-2"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-2 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-026",
+      "name": "counterexample-5-2",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-26",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-2 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment and health check succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-027",
+      "name": "healthy-6-2",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-27",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-2 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-028",
+      "name": "healthy-7-2",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-28",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-2"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-2 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "All application health checks passed; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-029",
+      "name": "insufficient-8-2",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-29",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-030",
+      "name": "insufficient-9-2",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-30",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Documentation example: probe process_instance=example port=8080 result=failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 2
+      }
+    },
+    {
+      "id": "test-031",
+      "name": "fault-0-3",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-31",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-3"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-3 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-3 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-032",
+      "name": "fault-1-3",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-32",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-3"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "healthcheck process_instance=worker-test-3 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-3 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005",
+            "EV000006"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-033",
+      "name": "fault-2-3",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-33",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-3 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_error process_instance=worker-test-3 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-034",
+      "name": "fault-3-3",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-34",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_contract process_instance=worker-test-3 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "config_error process_instance=worker-test-3 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-035",
+      "name": "counterexample-4-3",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-35",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-3"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-3 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-036",
+      "name": "counterexample-5-3",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-36",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-3 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment and health check succeeded."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-037",
+      "name": "healthy-6-3",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-37",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-3 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-038",
+      "name": "healthy-7-3",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-38",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-3"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-3 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "All application health checks passed; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-039",
+      "name": "insufficient-8-3",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-39",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-040",
+      "name": "insufficient-9-3",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-40",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=maintenance operation=cleanup target=cache result=succeeded"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 3
+      }
+    },
+    {
+      "id": "test-041",
+      "name": "fault-0-4",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-41",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-4"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-4 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-4 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-042",
+      "name": "fault-1-4",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-42",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-4"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "healthcheck process_instance=worker-test-4 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-4 only_port=3000 complete=true"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-043",
+      "name": "fault-2-4",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-43",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-4 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_error process_instance=worker-test-4 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000001"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-044",
+      "name": "fault-3-4",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-44",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_contract process_instance=worker-test-4 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_error process_instance=worker-test-4 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-045",
+      "name": "counterexample-4-4",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-45",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-4"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-4 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-046",
+      "name": "counterexample-5-4",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-46",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "config_contract process_instance=worker-test-4 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment and health check succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-047",
+      "name": "healthy-6-4",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-47",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-4 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Application ready; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000001",
+            "EV000002"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-048",
+      "name": "healthy-7-4",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-48",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-4"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "healthcheck process_instance=worker-test-4 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "All application health checks passed; deployment succeeded."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-049",
+      "name": "insufficient-8-4",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-49",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-050",
+      "name": "insufficient-9-4",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-50",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Trace sampling dropped verbose informational entries only."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 4
+      }
+    },
+    {
+      "id": "test-051",
+      "name": "fault-0-5",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-51",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-5"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-5 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-5 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003",
+            "EV000004"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 0,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-052",
+      "name": "fault-1-5",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-52",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-5"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "healthcheck process_instance=worker-test-5 port=8080 route=direct result=connection_refused\nlistener_snapshot process_instance=worker-test-5 only_port=3000 complete=true"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치",
+            "다르",
+            "mismatch",
+            "잘못",
+            "상이"
+          ]
+        ],
+        "critical_log_patterns": [
+          "3000",
+          "8080"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery",
+        "observed_port_difference",
+        "port_mismatch_candidate"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": []
+        },
+        {
+          "kind": "port_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005",
+            "EV000006"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 1,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-053",
+      "name": "fault-2-5",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-53",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-5 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "config_error process_instance=worker-test-5 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000002"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 2,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-054",
+      "name": "fault-3-5",
+      "family": "fault",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-54",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "config_contract process_instance=worker-test-5 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "config_error process_instance=worker-test-5 role=database key=DATABASE_URl path=src/config.py"
+            },
+            {
+              "id": "event-6",
+              "timestamp": "2026-10-03T00:00:06Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 6,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 3, in <module>\nKeyError: DATABASE_URl"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\n# service bootstrap\nconnection = (os.environ[\n    \"DATABASE_URl\"\n])\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "불일치",
+            "오타",
+            "다르",
+            "mismatch",
+            "소문자",
+            "대소문자"
+          ]
+        ],
+        "critical_log_patterns": [
+          "config_contract",
+          "config_error"
+        ],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "configuration_mismatch_candidate",
+        "configuration_reference_difference",
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "configuration_mismatch_candidate",
+          "evidence_ids": [
+            "EV000004",
+            "EV000005"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "configuration_reference_difference",
+          "evidence_ids": [
+            "EV000004"
+          ],
+          "source_evidence_ids": [
+            "SC000003",
+            "SC000004",
+            "SC000005"
+          ]
+        },
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 3,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-055",
+      "name": "counterexample-4-5",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-55",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-5"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-5 port=8080 route=mapped result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Mapping host 8080 -> container 3000; deployment succeeded; application is ready."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "observed_port_difference"
+      ],
+      "expected_relations": [
+        {
+          "kind": "observed_port_difference",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 4,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-056",
+      "name": "counterexample-5-5",
+      "family": "counterexample",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-56",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "config_contract process_instance=worker-test-5 role=database key=DATABASE_URL path=src/config.py"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Configured compatibility alias DATABASE_URl -> DATABASE_URL; no missing configuration."
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment and health check succeeded."
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/relation.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "import os\nos.environ[\"DATABASE_URl\"] = os.environ[\"DATABASE_URL\"]\nurl = os.environ[\"DATABASE_URl\"]\n"
+        }
+      ],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 5,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-057",
+      "name": "healthy-6-5",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-57",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=failed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "task process_instance=worker-test-5 operation=db-connect target=database result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "Application ready; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [
+        "failure_followed_by_recovery"
+      ],
+      "expected_relations": [
+        {
+          "kind": "failure_followed_by_recovery",
+          "evidence_ids": [
+            "EV000002",
+            "EV000003"
+          ],
+          "source_evidence_ids": []
+        }
+      ],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 6,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-058",
+      "name": "healthy-7-5",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-58",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Listening on http://0.0.0.0:3000 process_instance=worker-test-5"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "healthcheck process_instance=worker-test-5 port=3000 route=direct result=succeeded"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "All application health checks passed; deployment succeeded."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 7,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-059",
+      "name": "insufficient-8-5",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-59",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "probe port=8080 route=unknown result=connection_refused"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "Target process and listener state were not collected. No other diagnostic information."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 8,
+        "nuisance": 5
+      }
+    },
+    {
+      "id": "test-060",
+      "name": "insufficient-9-5",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "relation-eval",
+          "serviceId": "app",
+          "deploymentId": "test-60",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Build completed; build warnings did not block the deployment."
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "app-process",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Process terminated with exit code 137. No OOM event, memory metric or termination initiator was collected."
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "expected_relation_kinds": [],
+      "expected_relations": [],
+      "provenance": {
+        "kind": "authored_relation_scenario",
+        "scenario": 9,
+        "nuisance": 5
+      }
+    }
+  ]
+}

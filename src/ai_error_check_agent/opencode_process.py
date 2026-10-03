@@ -42,6 +42,11 @@ def runtime_config(profile, *, catalog=None, interactive=False):
             "limit": {"context": 65536, "output": item.max_output_tokens},
             "options": {"reasoningEffort": item.reasoning_effort, "store": False},
         }
+        if item.provider_id == "openai" and item.service_tier is not None:
+            # Use the equivalent older name for compatibility with bundled AI SDK versions.
+            provider["models"][item.model_id]["options"]["serviceTier"] = (
+                "priority" if item.service_tier == "fast" else item.service_tier
+            )
         if item.provider_id == "sakana":
             provider["models"][item.model_id]["variants"] = {
                 **{name: {"disabled": True} for name in ("none", "minimal", "low", "medium")},

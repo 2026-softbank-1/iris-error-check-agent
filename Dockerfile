@@ -32,8 +32,8 @@ COPY --from=python-build /opt/venv /opt/venv
 # OpenCode 1.18.34 installs its standalone ELF binary with this filename on Linux too.
 COPY --from=opencode --chmod=755 /opt/opencode/node_modules/opencode-ai/bin/opencode.exe /app/.runtime/opencode-tooling/node_modules/opencode-ai/bin/opencode.exe
 COPY --from=opencode /opt/opencode/node_modules/opencode-ai/LICENSE /usr/share/licenses/opencode/LICENSE
-RUN mkdir -p /app/.runtime/opencode-runs \
-    && chown agent:agent /app/.runtime/opencode-runs
+RUN mkdir -p /app/.runtime/opencode-runs /app/.runtime/knowledge \
+    && chown agent:agent /app/.runtime/opencode-runs /app/.runtime/knowledge
 
 USER 10001:10001
 RUN test "$(/app/.runtime/opencode-tooling/node_modules/opencode-ai/bin/opencode.exe --version)" = "1.18.34"

@@ -1,0 +1,10 @@
+PREFIX r: <urn:iris:reasoning:v1:>
+CONSTRUCT {
+ ?id a r:DerivedRelation ; r:kind "configuration_reference_difference" ; r:rule "CONFIG_REFERENCE_V1" ;
+     r:input ?contract, ?code ; r:scope ?scope .
+} WHERE {
+ ?contract a r:ConfigContract ; r:scope ?scope ; r:path ?path ; r:key ?expected .
+ ?code a r:ConfigReference ; r:scope ?scope ; r:path ?path ; r:key ?actual .
+ FILTER(?expected != ?actual)
+ BIND(IRI(CONCAT("urn:iris:derived:", SHA256(CONCAT("CONFIG_REFERENCE_V1", STR(?contract), STR(?code))))) AS ?id)
+}

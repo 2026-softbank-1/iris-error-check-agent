@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import logging
 import time
 
 from jsonschema import Draft202012Validator
@@ -171,8 +172,17 @@ def select_source(index, requests, *, max_bytes=8192):
     return evidence, ranges, limitations
 
 
-async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, archive_loader=None):
+async def diagnose_with_source(
+    payload,
+    runtime_factory,
+    *,
+    backend_data=None,
+    archive_loader=None,
+    graph_observer=None,
+    reasoning_service=None,
+):
     started = time.monotonic()
+    reasoning_reports = []
     request, snapshot = payload.diagnosis, payload.source_snapshot
     index = source_index(snapshot)
     runtime = runtime_factory()
@@ -192,12 +202,25 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
         if backend_data:
             data["source_archive_available"] = archive_loader is not None
             prompt += ARCHIVE_SELECTION_PROMPT
+        schema = stage_schema("source_request", SourceRequest)
+        if reasoning_service is not None:
+            prompt, data, report = await reasoning_service.apply(
+                request,
+                bundle,
+                prompt,
+                data,
+                schema,
+                runtime.profile,
+                service_id=str(backend_data.service_id) if backend_data else None,
+                stage="logs",
+            )
+            reasoning_reports.append(report)
         result = await execute_stage(
             request,
             runtime,
             bundle,
             prompt,
-            stage_schema("source_request", SourceRequest),
+            schema,
             data,
             lambda text, b: parse_stage(text, b, "source_request", SourceRequest),
         )
@@ -234,6 +257,7 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
         "error": None,
     }
     result["source_analysis"] = source
+    graph_stages = []
     if backend_data:
         result["backend_context"] = backend_context(backend_data)
         source["root_directory"] = (
@@ -243,6 +267,8 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
         source["limitations"].append("커밋 SHA와 소스 내용의 일치는 백엔드 제공 정보에 의존합니다.")
     if result["analysis"] is not None:
         selection = result["analysis"].pop("source_request")
+        if graph_observer is not None:
+            graph_stages.append({"stage": "logs", "analysis": copy.deepcopy(result["analysis"])})
         source.update(reason=selection["reason"], requested_files=selection["files"])
         if not selection["needed"]:
             source["status"] = "not_needed"
@@ -270,12 +296,26 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
                 try:
                     data = bundle.model_payload()
                     data.update(source_evidence=evidence, source_limitations=source["limitations"])
+                    prompt = load_prompt() + CODE_PROMPT
+                    schema = stage_schema("source_findings", SourceFindings)
+                    if reasoning_service is not None:
+                        prompt, data, report = await reasoning_service.apply(
+                            request,
+                            bundle,
+                            prompt,
+                            data,
+                            schema,
+                            runtime.profile,
+                            service_id=str(backend_data.service_id) if backend_data else None,
+                            stage="source",
+                        )
+                        reasoning_reports.append(report)
                     second = await execute_stage(
                         request,
                         runtime,
                         bundle,
-                        load_prompt() + CODE_PROMPT,
-                        stage_schema("source_findings", SourceFindings),
+                        prompt,
+                        schema,
                         data,
                         lambda text, b: parse_stage(
                             text, b, "source_findings", SourceFindings, source_lines=evidence
@@ -305,6 +345,8 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
                     source["limitations"].append(
                         "소스 분석에 실패하여 로그 단계의 진단을 유지합니다."
                     )
+                if graph_observer is not None:
+                    graph_stages.append({"stage": "source", "analysis": second["analysis"]})
             elif source["status"] != "failed":
                 source["limitations"].append("분석에 사용할 수 있는 소스 범위가 없습니다.")
     counts = [stage["provider_call_count"] for stage in stages]
@@ -321,4 +363,14 @@ async def diagnose_with_source(payload, runtime_factory, *, backend_data=None, a
         "cost": None,
         "stages": stages,
     }
+    if graph_observer is not None:
+        try:
+            graph_observer.submit(
+                result,
+                graph_stages,
+                **({"reasoning": reasoning_reports} if reasoning_reports else {}),
+            )
+        except Exception:  # noqa: BLE001 - shadow failures cannot change the API contract
+            # Observer failures are internal and cannot change the public diagnosis.
+            logging.getLogger(__name__).warning("knowledge_shadow status=observer_failed")
     return result

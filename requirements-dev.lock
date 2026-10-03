@@ -29,3 +29,10 @@ fastapi==0.142.2
 opentelemetry-api==1.45.0
 starlette==1.7.0
 uvicorn==0.54.0
+html5rdf==1.2.1
+owlrl==7.6.2
+prettytable==3.18.0
+pyparsing==3.3.3
+pyshacl==0.31.0
+rdflib==7.6.0
+wcwidth==0.9.1

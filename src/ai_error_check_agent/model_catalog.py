@@ -108,6 +108,9 @@ def load_catalog(env_file: Path, *, default_profile=None, default_key=None, envi
                     ),
                     reasoning_effort=config.get(f"{prefix}_REASONING_EFFORT")
                     or ("low" if provider == "openai" else "high"),
+                    service_tier=(str(config.get("OPENAI_SERVICE_TIER") or "").strip() or None)
+                    if provider == "openai"
+                    else None,
                 )
                 choices.append(ModelChoice(profile, SecretStr(key) if key else None))
     except (ValueError, ValidationError):

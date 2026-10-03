@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import re
 from collections.abc import Mapping
@@ -16,6 +17,9 @@ from .contracts import Identifier, StrictModel
 from .errors import DiagnosisError
 from .runtime import ModelResponse
 
+LOGGER = logging.getLogger(__name__)
+OpenAIServiceTier = Literal["auto", "default", "fast", "priority"]
+
 
 class DirectModelProfile(StrictModel):
     profile_id: Identifier
@@ -25,6 +29,7 @@ class DirectModelProfile(StrictModel):
     timeout_seconds: Annotated[float, Field(gt=0, le=300)] = 60.0
     max_output_tokens: Annotated[int, Field(ge=1024, le=16_384)] = 4096
     reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    service_tier: OpenAIServiceTier | None = None
     max_evidence_bytes: int = 16_384
     max_prompt_bytes: int = 32_768
 
@@ -35,6 +40,8 @@ class DirectModelProfile(StrictModel):
             raise ValueError("provider must use its official API endpoint")
         if self.provider_id == "sakana" and self.reasoning_effort not in {"high", "xhigh", "max"}:
             raise ValueError("Sakana reasoning effort must be high, xhigh or max")
+        if self.provider_id != "openai" and self.service_tier is not None:
+            raise ValueError("service tier is only supported for OpenAI")
         return self
 
 
@@ -77,10 +84,12 @@ def load_direct_settings(
             reasoning_effort=value(
                 "LLM_REASONING_EFFORT", "high" if provider == "sakana" else "low"
             ),
+            service_tier=(value("OPENAI_SERVICE_TIER") or None) if provider == "openai" else None,
         )
     except (ValidationError, ValueError):
         raise DiagnosisError(
-            "INVALID_CONFIG", ".env의 제공자·모델·API 주소·시간·출력 제한 설정을 확인하세요."
+            "INVALID_CONFIG",
+            ".env의 제공자·모델·API 주소·시간·출력 제한·서비스 티어 설정을 확인하세요.",
         ) from None
     return profile, SecretStr(api_key)
 
@@ -115,6 +124,7 @@ class OpenAIResponsesRuntime:
         self.cleanup_status = "not_needed"
         self.abort_confirmed = None
         self.reusable = True
+        self.reported_service_tier = None
 
     async def close(self):
         await self.client.aclose()
@@ -151,6 +161,8 @@ class OpenAIResponsesRuntime:
             "store": False,
             "max_output_tokens": self.profile.max_output_tokens,
         }
+        if self.profile.provider_id == "openai" and self.profile.service_tier is not None:
+            payload["service_tier"] = self.profile.service_tier
         self.message_submissions = 1
         try:
             async with self.client.stream("POST", "responses", json=payload) as response:
@@ -169,7 +181,7 @@ class OpenAIResponsesRuntime:
                 if response.status_code == 400:
                     raise DiagnosisError(
                         "MODEL_REQUEST_ERROR",
-                        "모델 제공자가 요청 규격을 거절했습니다. 모델·스키마 설정을 확인하세요.",
+                        "모델 제공자가 요청 규격을 거절했습니다. 모델·스키마·서비스 티어 설정을 확인하세요.",
                     )
                 if response.status_code != 200:
                     raise DiagnosisError("MODEL_ERROR", "LLM API 요청이 실패했습니다.")
@@ -180,7 +192,24 @@ class OpenAIResponsesRuntime:
                         raise DiagnosisError("MODEL_ERROR", "모델 응답 크기가 한도를 초과했습니다.")
             data = json.loads(body)
             self.provider_call_count = 1
-            return self._parse(data)
+            result = self._parse(data)
+            if self.profile.provider_id == "openai":
+                tier = data.get("service_tier")
+                if isinstance(tier, str) and tier in {
+                    "auto",
+                    "default",
+                    "fast",
+                    "priority",
+                    "flex",
+                    "ultrafast",
+                }:
+                    self.reported_service_tier = tier
+                LOGGER.info(
+                    "openai_service_tier requested=%s reported=%s",
+                    self.profile.service_tier or "unspecified",
+                    self.reported_service_tier or "unknown",
+                )
+            return result
         except (asyncio.CancelledError, httpx.TimeoutException) as exc:
             # Closing the HTTP connection does not confirm cancellation at the provider.
             self.abort_confirmed = False

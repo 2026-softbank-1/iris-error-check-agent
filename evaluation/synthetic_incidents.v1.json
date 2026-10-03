@@ -1,0 +1,1479 @@
+{
+  "version": "synthetic-incidents.v1",
+  "dataset_kind": "synthetic_curated",
+  "grading_frozen_before_dispatch": true,
+  "cases": [
+    {
+      "id": "case-001",
+      "name": "Python 기동 코드의 콜론 누락",
+      "family": "syntax",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-001",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "build",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "build",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO validating application"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "build",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "  File \"src/app.py\", line 1\n    def startup()\n                 ^\nSyntaxError: expected ':'\n"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "build",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR application validation failed"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/snapshots/eval.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "66988e683a08beb3f9b185637d5d8d043f7dbcb6",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/app.py",
+          "content": "def startup()\n    return 'ready'\nstartup()\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "build_compile",
+          "other"
+        ],
+        "statement_pattern_groups": [
+          [
+            "syntax|구문|문법|콜론|colon"
+          ]
+        ],
+        "critical_log_patterns": [
+          "SyntaxError"
+        ],
+        "source_fault": {
+          "path": "src/app.py",
+          "line": 1
+        }
+      },
+      "provenance": {
+        "kind": "local_python_fault_injection",
+        "broken_exit": 1,
+        "fixed_exit": 0,
+        "expected_exception": "SyntaxError",
+        "fault_line": 1,
+        "broken_sha256": "3c218b354795db80b4db9af4e07fb768fa034384c92a155871f4e9517e30bd52",
+        "fixed_sha256": "9aa1fe33def3d0f03502a9b0fea6b36d093a0aa81d4f74e88c8db1f5341b7746"
+      }
+    },
+    {
+      "id": "case-002",
+      "name": "환경변수 참조 이름 오타",
+      "family": "configuration",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-002",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO deployment sets DATABASE_URL"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Traceback (most recent call last):\n  File \"src/config.py\", line 5, in <module>\n    database_url()\n  File \"src/config.py\", line 4, in database_url\n    return os.environ['DATABASE_URl']\n           ~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"<frozen os>\", line 714, in __getitem__\nKeyError: 'DATABASE_URl'\n"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/snapshots/eval.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "032ff4b862986f12aead04633294018e6ad4f3d9",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/config.py",
+          "content": "# Deployment provides DATABASE_URL.\nimport os\ndef database_url():\n    return os.environ['DATABASE_URl']\ndatabase_url()\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URl"
+          ],
+          [
+            "오타|대소문자|잘못|불일치|typo|case|incorrect|mismatch"
+          ]
+        ],
+        "critical_log_patterns": [
+          "KeyError"
+        ],
+        "source_fault": {
+          "path": "src/config.py",
+          "line": 4
+        }
+      },
+      "provenance": {
+        "kind": "local_python_fault_injection",
+        "broken_exit": 1,
+        "fixed_exit": 0,
+        "expected_exception": "KeyError",
+        "fault_line": 4,
+        "broken_sha256": "6dc033f56a84b3b988f82aa23a98e7786f366950ff7d6135b3bf8f0b99b4ff83",
+        "fixed_sha256": "e8ac9efbdf10a6a53a7004a439f36988238131b298117eee55515fc1124fa928"
+      }
+    },
+    {
+      "id": "case-003",
+      "name": "PORT의 숫자 변환 실패",
+      "family": "configuration",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-003",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO PORT=eighty"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Traceback (most recent call last):\n  File \"src/server.py\", line 2, in <module>\n    port = int(os.environ['PORT'])\n           ^^^^^^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'eighty'\n"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/snapshots/eval.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "2d6f5c97f8ace5a08d363080e76047e32f4971d6",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/server.py",
+          "content": "import os\nport = int(os.environ['PORT'])\nprint(port)\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration",
+          "port_binding",
+          "other"
+        ],
+        "statement_pattern_groups": [
+          [
+            "PORT|포트"
+          ],
+          [
+            "eighty|숫자|정수|integer|변환|invalid literal"
+          ]
+        ],
+        "critical_log_patterns": [
+          "ValueError"
+        ],
+        "source_fault": {
+          "path": "src/server.py",
+          "line": 2
+        }
+      },
+      "provenance": {
+        "kind": "local_python_fault_injection",
+        "broken_exit": 1,
+        "fixed_exit": 0,
+        "expected_exception": "ValueError",
+        "fault_line": 2,
+        "fault": "PORT=eighty",
+        "repair": "PORT=8080"
+      }
+    },
+    {
+      "id": "case-004",
+      "name": "배포 산출물에서 내부 모듈 누락",
+      "family": "dependency",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-004",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO loading application"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "Traceback (most recent call last):\n  File \"src/main.py\", line 1, in <module>\n    import iris_billing_helpers\nModuleNotFoundError: No module named 'iris_billing_helpers'\n"
+            }
+          ],
+          "source": {
+            "format": "tar.gz",
+            "downloadUrl": "https://iris-example.s3.ap-northeast-2.amazonaws.com/snapshots/eval.tar.gz",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "commitSha": "1faa682b54b154baad9063213c51712ff439f558",
+            "rootDirectory": "."
+          }
+        }
+      },
+      "source_files": [
+        {
+          "path": "src/main.py",
+          "content": "import iris_billing_helpers\nprint('ready')\n"
+        }
+      ],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "dependency"
+        ],
+        "statement_pattern_groups": [
+          [
+            "iris_billing_helpers"
+          ],
+          [
+            "없|누락|찾|missing|not found|존재|import|포함"
+          ]
+        ],
+        "critical_log_patterns": [
+          "ModuleNotFoundError"
+        ],
+        "source_fault": {
+          "path": "src/main.py",
+          "line": 1
+        }
+      },
+      "provenance": {
+        "kind": "local_python_fault_injection",
+        "broken_exit": 1,
+        "fixed_exit": 0,
+        "expected_exception": "ModuleNotFoundError",
+        "fault_line": 1,
+        "broken_sha256": "24a0c80000bc8b36a58a768016e52df7c764c5487027bae59dd2fdad6623d487",
+        "fixed_sha256": "e13cdff7de4a58aa927d0812d424a163af37d0619bebb12c0e68f042cd02a511"
+      }
+    },
+    {
+      "id": "case-005",
+      "name": "필수 설정 누락",
+      "family": "configuration",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-005",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO checking required environment"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR Missing required configuration: DATABASE_URL"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR startup aborted"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "DATABASE_URL"
+          ],
+          [
+            "누락|미설정|없|missing|required|설정.*않"
+          ]
+        ],
+        "critical_log_patterns": [
+          "Missing required configuration"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-006",
+      "name": "리스닝 포트 점유",
+      "family": "port",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-006",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO starting HTTP listener"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR listen EADDRINUSE: address already in use 0.0.0.0:8080"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR application terminated before readiness"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding"
+        ],
+        "statement_pattern_groups": [
+          [
+            "8080|포트|port"
+          ],
+          [
+            "EADDRINUSE|충돌|점유|이미.*사용|already in use"
+          ]
+        ],
+        "critical_log_patterns": [
+          "EADDRINUSE"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-007",
+      "name": "플랫폼과 서비스 포트 불일치",
+      "family": "port",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-007",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO platform assigned PORT=8080"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "INFO application listening on 0.0.0.0:3000"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR readiness probe to 10.0.0.7:8080 failed: connection refused; deployment failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check",
+          "configuration"
+        ],
+        "statement_pattern_groups": [
+          [
+            "3000"
+          ],
+          [
+            "8080"
+          ],
+          [
+            "불일치|다른|mismatch|포트|port"
+          ]
+        ],
+        "critical_log_patterns": [
+          "listening on 0.0.0.0:3000",
+          "probe.*8080"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-008",
+      "name": "루프백 주소에만 바인딩",
+      "family": "port",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-008",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO application listening on 127.0.0.1:8080"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "INFO local request http://127.0.0.1:8080/health returned 200"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR platform readiness probe to container IP 10.0.0.7:8080: connection refused"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "port_binding",
+          "health_check"
+        ],
+        "statement_pattern_groups": [
+          [
+            "127\\.0\\.0\\.1|loopback|루프백|localhost"
+          ],
+          [
+            "바인딩|리스닝|listen|bind|외부|접근"
+          ]
+        ],
+        "critical_log_patterns": [
+          "listening on 127.0.0.1",
+          "platform readiness probe"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-009",
+      "name": "볼륨 쓰기 권한 거절",
+      "family": "permission",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-009",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO starting as uid=10001"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR PermissionError: [Errno 13] Permission denied: '/data/uploads/cache.tmp'"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR upload storage initialization failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "access_permission"
+        ],
+        "statement_pattern_groups": [
+          [
+            "권한|permission|접근"
+          ],
+          [
+            "/data/uploads|cache.tmp|쓰기|write"
+          ]
+        ],
+        "critical_log_patterns": [
+          "PermissionError"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-010",
+      "name": "명시적 컨테이너 메모리 초과",
+      "family": "resource",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-010",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 137,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "WARN memory usage reached container limit"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR container termination reason=OOMKilled; memory limit=256MiB; exitCode=137"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR deployment failed before readiness"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "resource"
+        ],
+        "statement_pattern_groups": [
+          [
+            "OOM|메모리|memory"
+          ]
+        ],
+        "critical_log_patterns": [
+          "OOMKilled"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-011",
+      "name": "릴리스 마이그레이션 대상 테이블 없음",
+      "family": "migration",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-011",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "release",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "release",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO running release migration"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "release",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR sqlalchemy.exc.ProgrammingError: relation \"orders\" does not exist"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "release",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR release migration exited with code 1; runtime stage not started"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "release_migration",
+          "external_connection"
+        ],
+        "statement_pattern_groups": [
+          [
+            "orders"
+          ],
+          [
+            "없|존재|누락|does not exist|테이블|table"
+          ]
+        ],
+        "critical_log_patterns": [
+          "relation.*orders.*does not exist"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-012",
+      "name": "기동 실행 파일 없음",
+      "family": "command",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-012",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 127,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO executing start command: gunicorn app:app"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "/bin/sh: gunicorn: command not found"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "ERROR start command exited with code 127"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "diagnosed",
+        "categories": [
+          "start_command",
+          "dependency"
+        ],
+        "statement_pattern_groups": [
+          [
+            "gunicorn"
+          ],
+          [
+            "없|찾|설치|missing|not found|누락"
+          ]
+        ],
+        "critical_log_patterns": [
+          "gunicorn: command not found"
+        ],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-013",
+      "name": "정상 배포",
+      "family": "healthy",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-013",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO build completed successfully"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "INFO application ready"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "INFO health check passed; deployment completed successfully"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-014",
+      "name": "DB 재시도 뒤 복구",
+      "family": "healthy_recovered",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-014",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "WARN database connection refused on attempt 1"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "INFO attempt 2 connected successfully"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "INFO application ready; health check passed"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "INFO deployment completed successfully"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-015",
+      "name": "테스트의 의도된 오류 출력",
+      "family": "healthy_expected_error",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-015",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO running expected-error unit test"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR ValueError emitted by negative test fixture"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "INFO negative test passed: exception was expected"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "INFO tests: 12 passed, 0 failed"
+            },
+            {
+              "id": "event-5",
+              "timestamp": "2026-10-03T00:00:05Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 5,
+              "text": "INFO build and deployment completed successfully"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-016",
+      "name": "첫 빌드 실패 뒤 재시도 성공",
+      "family": "healthy_recovered",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-016",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "SUCCEEDED",
+          "failedStage": "runtime",
+          "exitCode": 0,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "ERROR attempt 1: dependency download failed"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "INFO attempt 2: dependencies installed"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "INFO build succeeded; application ready; health check passed"
+            },
+            {
+              "id": "event-4",
+              "timestamp": "2026-10-03T00:00:04Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 4,
+              "text": "INFO deployment completed successfully"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "no_failure_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-017",
+      "name": "종료 코드 137만 존재",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-017",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 137,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "ERROR process exited with code 137"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-018",
+      "name": "대상 없는 일반 시간 초과",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-018",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": null,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "ERROR operation timed out"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR deployment failed"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-019",
+      "name": "종료 코드 1만 존재",
+      "family": "insufficient",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-019",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": true
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "INFO starting deployment"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "ERROR command exited with code 1"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    },
+    {
+      "id": "case-020",
+      "name": "잘린 스택 트레이스",
+      "family": "insufficient_truncated",
+      "payload": {
+        "success": true,
+        "message": "진단용 데이터 조회 완료",
+        "data": {
+          "projectId": "eval-project",
+          "serviceId": "eval-service",
+          "deploymentId": "eval-deploy-020",
+          "attemptId": "attempt-1",
+          "deploymentStatus": "FAILED",
+          "failedStage": "runtime",
+          "exitCode": 1,
+          "logRange": {
+            "from": "2026-10-03T00:00:00Z",
+            "to": "2026-10-03T00:05:00Z",
+            "isComplete": false
+          },
+          "logs": [
+            {
+              "id": "event-1",
+              "timestamp": "2026-10-03T00:00:01Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 1,
+              "text": "Traceback (most recent call last):"
+            },
+            {
+              "id": "event-2",
+              "timestamp": "2026-10-03T00:00:02Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 2,
+              "text": "  File \"src/app.py\", line 42, in startup"
+            },
+            {
+              "id": "event-3",
+              "timestamp": "2026-10-03T00:00:03Z",
+              "stage": "runtime",
+              "sourceId": "deployment-worker",
+              "stream": "combined",
+              "sequence": 3,
+              "text": "[log stream truncated]"
+            }
+          ],
+          "source": null
+        }
+      },
+      "source_files": [],
+      "gold": {
+        "status": "insufficient_evidence",
+        "categories": [],
+        "statement_pattern_groups": [],
+        "critical_log_patterns": [],
+        "source_fault": null
+      },
+      "provenance": {
+        "kind": "authored_fault_scenario"
+      }
+    }
+  ]
+}

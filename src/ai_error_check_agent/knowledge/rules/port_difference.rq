@@ -1,0 +1,11 @@
+PREFIX r: <urn:iris:reasoning:v1:>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+ ?id a r:DerivedRelation ; r:kind "observed_port_difference" ; r:rule "PORT_DIFFERENCE_V1" ;
+     r:input ?a, ?b ; r:scope ?scope .
+} WHERE {
+ ?a a r:ListenerObservation ; r:instance ?instance ; r:scope ?scope ; r:port ?p .
+ ?b a r:ProbeObservation ; r:instance ?instance ; r:scope ?scope ; r:port ?q .
+ FILTER(?p != ?q)
+ BIND(IRI(CONCAT("urn:iris:derived:", SHA256(CONCAT("PORT_DIFFERENCE_V1", STR(?a), STR(?b))))) AS ?id)
+}

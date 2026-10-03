@@ -1,0 +1,78 @@
+@prefix kg: <urn:iris:knowledge:v1:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kg:DiagnosisShape a sh:NodeShape ; sh:targetClass kg:Diagnosis ;
+  sh:property [ sh:path kg:inAttempt ; sh:minCount 1 ; sh:maxCount 1 ; sh:class kg:Attempt ] .
+kg:AttemptShape a sh:NodeShape ; sh:targetClass kg:Attempt ;
+  sh:property [ sh:path kg:tenantId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:projectId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:deploymentId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:attemptId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+kg:ScopedShape a sh:NodeShape ;
+  sh:targetClass kg:Evidence, kg:RelationNode, kg:Snapshot, kg:Stage ;
+  sh:property [ sh:path kg:inAttempt ; sh:minCount 1 ; sh:maxCount 1 ; sh:class kg:Attempt ] .
+kg:StageShape a sh:NodeShape ; sh:targetClass kg:Stage ;
+  sh:property [ sh:path kg:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "logs" "source" ) ] .
+kg:SnapshotShape a sh:NodeShape ; sh:targetClass kg:Snapshot ;
+  sh:property [ sh:path kg:commitVerification ; sh:minCount 1 ; sh:maxCount 1 ;
+    sh:in ( "caller_supplied" "not_supplied" ) ] .
+kg:EvidenceShape a sh:NodeShape ; sh:targetClass kg:Evidence ;
+  sh:property [ sh:path kg:localId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:text ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+kg:CodeShape a sh:NodeShape ; sh:targetClass kg:CodeEvidence ;
+  sh:property [ sh:path kg:filePath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:line ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+  sh:property [ sh:path kg:fromSnapshot ; sh:minCount 1 ; sh:maxCount 1 ; sh:class kg:Snapshot ] .
+kg:RelationShape a sh:NodeShape ; sh:targetClass kg:RelationNode ;
+  sh:property [ sh:path kg:inStage ; sh:minCount 1 ; sh:maxCount 1 ; sh:class kg:Stage ] ;
+  sh:property [ sh:path ( kg:inStage kg:inAttempt ) ; sh:equals kg:inAttempt ] ;
+  sh:sparql [ sh:message "Related evidence and assertions must belong to the same attempt and stage" ;
+    sh:select """
+      PREFIX kg: <urn:iris:knowledge:v1:>
+      SELECT $this WHERE {
+        $this kg:inAttempt ?attempt ; kg:inStage ?stage ; ?relation ?target .
+        FILTER (?relation IN (kg:supports, kg:opposes, kg:observation, kg:hypothesis, kg:codeEvidence, kg:logEvidence))
+        ?target kg:inAttempt ?otherAttempt .
+        OPTIONAL { ?target kg:inStage ?otherStage . }
+        FILTER (?attempt != ?otherAttempt || (BOUND(?otherStage) && ?stage != ?otherStage))
+      }
+    """ ] .
+kg:ObservationShape a sh:NodeShape ; sh:targetClass kg:Observation ;
+  sh:property [ sh:path kg:statement ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:supports ; sh:minCount 1 ; sh:class kg:LogEvidence ] ;
+  sh:property [ sh:path ( kg:supports kg:inAttempt ) ; sh:equals kg:inAttempt ] .
+kg:HypothesisShape a sh:NodeShape ; sh:targetClass kg:Hypothesis ;
+  sh:property [ sh:path kg:statement ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:supports ; sh:minCount 1 ; sh:class kg:LogEvidence ; sh:disjoint kg:opposes ] ;
+  sh:property [ sh:path kg:opposes ; sh:class kg:LogEvidence ] ;
+  sh:property [ sh:path kg:observation ; sh:minCount 1 ; sh:class kg:Observation ] ;
+  sh:property [ sh:path ( kg:supports kg:inAttempt ) ; sh:equals kg:inAttempt ] ;
+  sh:property [ sh:path ( kg:observation kg:inStage ) ; sh:equals kg:inStage ] ;
+  sh:property [ sh:path kg:confirmation ; sh:hasValue "unverified" ; sh:maxCount 1 ] .
+kg:CheckShape a sh:NodeShape ; sh:targetClass kg:NextCheck ;
+  sh:property [ sh:path kg:hypothesis ; sh:class kg:Hypothesis ] .
+kg:PlanShape a sh:NodeShape ; sh:targetClass kg:RemediationPlan ;
+  sh:property [ sh:path kg:hypothesis ; sh:minCount 1 ; sh:class kg:Hypothesis ] ;
+  sh:property [ sh:path kg:supports ; sh:minCount 1 ; sh:class kg:LogEvidence ] ;
+  sh:property [ sh:path ( kg:supports kg:inAttempt ) ; sh:equals kg:inAttempt ] .
+kg:FindingShape a sh:NodeShape ; sh:targetClass kg:SourceFinding ;
+  sh:property [ sh:path kg:filePath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path kg:startLine ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+  sh:property [ sh:path kg:endLine ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 1 ] ;
+  sh:property [ sh:path kg:codeEvidence ; sh:minCount 1 ; sh:class kg:CodeEvidence ] ;
+  sh:property [ sh:path kg:logEvidence ; sh:minCount 1 ; sh:class kg:LogEvidence ] ;
+  sh:property [ sh:path kg:hypothesis ; sh:minCount 1 ; sh:class kg:Hypothesis ] ;
+  sh:property [ sh:path ( kg:codeEvidence kg:filePath ) ; sh:equals kg:filePath ] ;
+  sh:property [ sh:path ( kg:codeEvidence kg:inAttempt ) ; sh:equals kg:inAttempt ] ;
+  sh:property [ sh:path ( kg:hypothesis kg:inStage ) ; sh:equals kg:inStage ] ;
+  sh:sparql [ sh:message "Finding range must exactly match the cited code lines" ;
+    sh:select """
+      PREFIX kg: <urn:iris:knowledge:v1:>
+      SELECT $this WHERE {
+        $this kg:startLine ?start ; kg:endLine ?end .
+        { SELECT $this (MIN(?line) AS ?first) (MAX(?line) AS ?last)
+          WHERE { $this kg:codeEvidence/kg:line ?line . } GROUP BY $this }
+        FILTER (?start != ?first || ?end != ?last)
+      }
+    """ ] .

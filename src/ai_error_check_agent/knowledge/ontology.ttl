@@ -1,0 +1,31 @@
+@prefix kg: <urn:iris:knowledge:v1:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+kg:Ontology a owl:Ontology ; owl:versionInfo "iris-knowledge.v1" .
+kg:Diagnosis a rdfs:Class .
+kg:Attempt a rdfs:Class .
+kg:Snapshot a rdfs:Class .
+kg:Stage a rdfs:Class .
+kg:Evidence a rdfs:Class .
+kg:LogEvidence a rdfs:Class ; rdfs:subClassOf kg:Evidence .
+kg:CodeEvidence a rdfs:Class ; rdfs:subClassOf kg:Evidence .
+kg:RelationNode a rdfs:Class .
+kg:Observation a rdfs:Class ; rdfs:subClassOf kg:RelationNode .
+kg:Hypothesis a rdfs:Class ; rdfs:subClassOf kg:RelationNode .
+kg:NextCheck a rdfs:Class ; rdfs:subClassOf kg:RelationNode .
+kg:RemediationPlan a rdfs:Class ; rdfs:subClassOf kg:RelationNode .
+kg:SourceFinding a rdfs:Class ; rdfs:subClassOf kg:RelationNode .
+
+# supports/opposes preserve the MODEL'S asserted evidence relationship.
+# They are not proof of causation. No confirmed-causedBy relation is created.
+kg:supports a owl:ObjectProperty ; rdfs:range kg:LogEvidence .
+kg:opposes a owl:ObjectProperty ; rdfs:range kg:LogEvidence .
+kg:observation a owl:ObjectProperty ; rdfs:range kg:Observation .
+kg:hypothesis a owl:ObjectProperty ; rdfs:range kg:Hypothesis .
+kg:codeEvidence a owl:ObjectProperty ; rdfs:range kg:CodeEvidence .
+kg:logEvidence a owl:ObjectProperty ; rdfs:range kg:LogEvidence .
+kg:inAttempt a owl:ObjectProperty ; rdfs:range kg:Attempt .
+kg:inStage a owl:ObjectProperty ; rdfs:range kg:Stage .
+kg:fromSnapshot a owl:ObjectProperty ; rdfs:range kg:Snapshot .
+kg:validationTarget a owl:ObjectProperty .

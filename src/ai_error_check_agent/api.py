@@ -18,6 +18,8 @@ from . import __version__
 from .backend_contracts import BackendData, BackendEnvelope, adapt_backend
 from .direct_api import OpenAIResponsesRuntime, load_direct_settings
 from .errors import DiagnosisError
+from .knowledge.reasoning import ReasoningService, ReasoningSettings
+from .knowledge.shadow import KnowledgeSettings, ShadowObserver
 from .model_catalog import load_catalog
 from .opencode_process import ManagedOpenCode
 from .source_analysis import diagnose_with_source
@@ -108,6 +110,8 @@ def create_app(
     managed_runtime=None,
     model_catalog=None,
     model_runtime_factory=None,
+    knowledge_settings=None,
+    reasoning_settings=None,
 ):
     if not dev and not api_key:
         raise DiagnosisError("MISSING_AGENT_API_KEY", "서버 모드는 AGENT_API_KEY가 필요합니다.")
@@ -127,12 +131,20 @@ def create_app(
         try:
             if managed_runtime:
                 managed_runtime.start()
+            if reasoning_service is not None:
+                reasoning_service.start()
             yield
         finally:
             # Uvicorn re-raises SIGTERM after lifespan shutdown on Unix.
             # Release the child here, before the Python process can terminate.
-            if managed_runtime:
-                managed_runtime.stop()
+            try:
+                if reasoning_service is not None:
+                    await reasoning_service.aclose()
+                if graph_observer is not None:
+                    await graph_observer.aclose()
+            finally:
+                if managed_runtime:
+                    managed_runtime.stop()
 
     app = FastAPI(
         title="IRIS Error Doctor",
@@ -140,6 +152,16 @@ def create_app(
         description="로그 우선 진단 및 백엔드 제공 소스의 조건부 분석. 수정은 제안만 합니다.",
         lifespan=lifespan,
     )
+    knowledge_settings = knowledge_settings or KnowledgeSettings()
+    graph_observer = (
+        ShadowObserver(knowledge_settings) if knowledge_settings.mode == "shadow" else None
+    )
+    app.state.knowledge_observer = graph_observer
+    reasoning_settings = reasoning_settings or ReasoningSettings()
+    reasoning_service = (
+        ReasoningService(reasoning_settings) if reasoning_settings.mode == "assist" else None
+    )
+    app.state.reasoning_service = reasoning_service
     app.add_middleware(RequestGate, api_key=api_key, max_body_bytes=max_body_bytes)
     if allowed_origins:
         app.add_middleware(
@@ -253,10 +275,20 @@ def create_app(
                     else None
                 )
                 result = await diagnose_with_source(
-                    payload, selected_factory, backend_data=backend_data, archive_loader=loader
+                    payload,
+                    selected_factory,
+                    backend_data=backend_data,
+                    archive_loader=loader,
+                    **({"graph_observer": graph_observer} if graph_observer else {}),
+                    **({"reasoning_service": reasoning_service} if reasoning_service else {}),
                 )
             else:
-                result = await diagnose_with_source(payload, selected_factory)
+                result = await diagnose_with_source(
+                    payload,
+                    selected_factory,
+                    **({"graph_observer": graph_observer} if graph_observer else {}),
+                    **({"reasoning_service": reasoning_service} if reasoning_service else {}),
+                )
         except DiagnosisError as exc:
             return error_response(422, exc.code, exc.message)
         finally:
@@ -348,6 +380,8 @@ def main(argv=None):
             managed_runtime=managed,
             model_catalog=catalog,
             model_runtime_factory=model_runtime_factory,
+            knowledge_settings=KnowledgeSettings.from_config(config),
+            reasoning_settings=ReasoningSettings.from_config(config),
             archive_policy=ArchivePolicy(
                 allowed_hosts=tuple(
                     host.strip().lower()

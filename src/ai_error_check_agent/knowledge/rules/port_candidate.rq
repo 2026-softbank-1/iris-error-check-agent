@@ -1,0 +1,25 @@
+PREFIX r: <urn:iris:reasoning:v1:>
+CONSTRUCT {
+ ?id a r:DerivedRelation ; r:kind "port_mismatch_candidate" ; r:rule "DIRECT_PORT_FAILURE_V1" ;
+     r:input ?diff, ?snapshot ; r:scope ?scope .
+} WHERE {
+ ?diff r:kind "observed_port_difference" ; r:input ?a, ?b ; r:scope ?scope .
+ ?a a r:ListenerObservation ; r:instance ?instance ; r:port ?p .
+ ?b a r:ProbeObservation ; r:instance ?instance ; r:port ?q ; r:route "direct" ;
+    r:outcome "connection_refused" ; r:group ?group ; r:sequence ?seq .
+ ?snapshot a r:ListenerSnapshot ; r:instance ?instance ; r:scope ?scope ; r:port ?p ;
+           r:group ?group ; r:sequence ?seq .
+ FILTER(?p != ?q)
+ # A known conflicting snapshot invalidates the complete-listener premise.
+ FILTER NOT EXISTS {
+   ?other a r:ListenerSnapshot ; r:instance ?instance ; r:scope ?scope ;
+          r:group ?group ; r:sequence ?seq ; r:port ?conflict .
+   FILTER(?conflict != ?p)
+ }
+ FILTER NOT EXISTS {
+   ?otherListener a r:ListenerObservation ; r:instance ?instance ; r:scope ?scope ;
+          r:group ?group ; r:sequence ?seq ; r:port ?conflict .
+   FILTER(?conflict != ?p)
+ }
+ BIND(IRI(CONCAT("urn:iris:derived:", SHA256(CONCAT("DIRECT_PORT_FAILURE_V1", STR(?diff), STR(?snapshot))))) AS ?id)
+}

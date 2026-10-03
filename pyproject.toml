@@ -8,7 +8,7 @@ version = "0.5.0"
 description = "IRIS deployment log diagnosis with verifiable evidence"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.10,<3", "httpx>=0.28,<1", "jsonschema>=4.23,<5", "python-dotenv>=1.0,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1"]
+dependencies = ["pydantic>=2.10,<3", "httpx>=0.28,<1", "jsonschema>=4.23,<5", "python-dotenv>=1.0,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "rdflib>=7.6,<8", "pyshacl>=0.31,<0.32"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
@@ -22,6 +22,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 ai_error_check_agent = ["agent/*.md", "agent/*.json"]
+"ai_error_check_agent.knowledge" = ["*.ttl", "rules/*.rq"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -29,4 +30,3 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-
