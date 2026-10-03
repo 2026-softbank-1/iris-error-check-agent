@@ -42,6 +42,8 @@ decision=defer, plan=defer로 해 더 넓은 기존 분석을 요청한다.
 반대 근거가 있으면 counter_evidence_ids에 실제 EV ID를 쓰고 defer한다. 없으면 []다.
 accept이면 candidate_id=C1, plan=provide_verified_file로 하고 summary에 관찰 범위의 진단을,
 uncertainty에 남은 불확실성을 짧은 한국어 문장으로 쓴다. 직접 확인하지 않은 배포 원인을 추가하지 않는다.
+uncertainty는 '사람의 조치가 필요해요'의 이유로도 표시된다. 자동으로 파일을 공급할 수 없는
+구체적인 이유와 사람이 확인·제공해야 할 원본이나 공급 계약을 근거에 맞게 1~3문장으로 적는다.
 서버가 근거·소스 인용 및 아래 검토용 계획을 기존 응답에 조립한다. 계획을 장문으로 재작성하지 않는다.
 계획: 파일의 공급·마운트·형식·영속성 계약과 검증된 원본을 먼저 확인한다. 기존 파일/링크를 덮어쓰지
 않는 파일 공급 템플릿을 제안한다. 빈 파일/빈 배열로 오류를 숨기지 않는다. 실제 적용 환경이 Bash+Node.js이고
@@ -113,6 +115,7 @@ def expand(text, packet):
     value = copy.deepcopy(template())
     refs, code_refs = candidate["evidence_ids"], candidate["source_evidence_ids"]
     value["summary"] = decision.summary
+    value["remediation"]["reason"] = decision.uncertainty
     value["observations"][0].update(
         text=f"{target} 파일 열기가 ENOENT로 실패했고, 스택 위치의 소스도 같은 경로를 읽습니다.",
         evidence_ids=refs,

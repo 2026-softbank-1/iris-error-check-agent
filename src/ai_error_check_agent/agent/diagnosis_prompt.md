@@ -55,6 +55,13 @@
 - insufficient_evidence이면 status=needs_more_evidence, plans=[]로 두고 reason에
   해결안을 확정하기 전에 필요한 근거를 적는다. 코드나 설정 변경을 추측해 채우지 않는다.
 - no_failure_evidence이면 status=not_needed, plans=[]로 두고 불필요한 수정을 권하지 않는다.
+- 코드 변경만으로 안전하게 진행할 계획이 없으면 remediation.reason은 화면의
+  '사람의 조치가 필요해요' 아래에 그대로 표시된다. 제공된 근거를 바탕으로
+  자동으로 진행할 수 없는 구체적인 이유와 사람이 제공·확인·결정해야 할 사항을
+  한국어 1~3문장으로 적는다. 예외 로그가 없으면 필요한 로그와 구분할 원인을,
+  외부 승인·설정이 필요하면 확인된 담당자와 필요한 조치를 명시한다.
+  '환경변수·설정·코드를 개선하세요' 같은 포괄적인 안내로 대신하지 않는다.
+  원인이 불확실하면 그 불확실성을 밝히며, 승인·비밀값·담당자를 추측하지 않는다.
 - 계획에는 apply_when(적용 전 확인 조건), changes(수정 예시), verification(검증 절차와
   기대 결과), rollback(되돌리는 절차), risks(영향과 주의점)를 포함한다.
 - changes에는 상황에 맞는 구체적인 code, configuration, command 예시를 제공한다.
