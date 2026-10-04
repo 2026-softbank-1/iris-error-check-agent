@@ -87,7 +87,6 @@ def test_single_call_retains_all_logs_source_refs_validation_and_cleanup(
         LOG.replace("/app/src/tasks.js", "/app/node_modules/tasks.js"),
         LOG.replace("src/tasks.js:2", "src/tasks.js:121"),
         LOG.split("    at createTasks")[0],
-        LOG.replace("Error: ENOENT", "Error: EACCES"),
     ],
     ids=[
         "other_error",
@@ -99,7 +98,6 @@ def test_single_call_retains_all_logs_source_refs_validation_and_cleanup(
         "dependency",
         "far_line",
         "no_frame",
-        "unsupported",
     ],
 )
 def test_ambiguous_or_unsupported_logs_keep_model_selection(request_data, analysis_data, log):
@@ -113,6 +111,18 @@ def test_ambiguous_or_unsupported_logs_keep_model_selection(request_data, analys
     )
     assert result["job_status"] == "succeeded"
     assert "source_manifest" in seen[0][1] and "source_evidence" not in seen[0][1]
+
+
+def test_non_enoent_stack_now_uses_general_location_source(request_data, analysis_data):
+    log = LOG.replace("ENOENT: no such file or directory", "EACCES: permission denied")
+    create, seen, _ = factory([response(analysis_data)])
+    result = asyncio.run(
+        diagnose_with_source(payload(request_data, log=log), create, diagnosis_settings=ADAPTIVE)
+    )
+    assert result["job_status"] == "succeeded"
+    assert result["source_analysis"]["status"] == "analyzed"
+    assert len(seen) == 1 and seen[0][1]["error_locations"][0]["line"] == 2
+    assert "Docker" not in seen[0][0]
 
 
 @pytest.mark.parametrize(

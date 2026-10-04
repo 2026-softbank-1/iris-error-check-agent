@@ -1,6 +1,6 @@
 # iris-error-check-agent
 
-IRIS/Likelion의 배포 로그와 소스 스냅샷·배포 설정을 대조해 관찰 사실, 원인 후보, 근거와 조건부 해결안을 반환하는 에이전트다. `graph_compact`에서는 코드가 만든 근거 그래프를 LLM이 검토하고 서버가 상세 해결안을 조립한다.
+IRIS/Likelion의 배포 로그에서 문법·컴파일·런타임 오류 위치를 추출하고 소스 스냅샷·배포 설정과 대조해 관찰 사실, 원인 후보, 근거와 조건부 해결안을 반환하는 에이전트다. `graph_compact`는 일반 오류의 위치 기반 소스 분석과 지원하는 파일 읽기·배포 관계의 그래프 판단을 함께 제공한다.
 
 ![version](https://img.shields.io/badge/version-0.5.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
@@ -32,12 +32,13 @@ flowchart LR
 ```mermaid
 flowchart LR
   IN["WAS 요청<br/>로그·배포 정보·선택적 소스"] --> PRE["인증·입력 검증<br/>정규화·마스킹·EV 부여"]
-  PRE --> MODE{"진단 모드"}
+  PRE --> LOC["오류 파일·행·열 추출<br/>로그 EV와 연결"]
+  LOC --> MODE{"진단 모드"}
   MODE -->|standard| NORMAL["LLM 로그 진단<br/>필요하면 소스 조회·재진단"]
-  MODE -->|adaptive / graph_compact| SRC["조건에 맞는 스택 소스 사전 조회·SC 부여<br/>graph_compact는 배포 설정도 조회"]
+  MODE -->|adaptive / graph_compact| SRC["보고된 오류 위치의 소스 사전 조회·SC 부여<br/>지원 ENOENT에서만 배포 설정도 조회"]
   SRC -->|사전 조회 불가| NORMAL
-  SRC -->|adaptive| FULL["LLM 로그·선택 소스 분석"]
-  SRC -->|graph_compact| KG["정적 사실 추출·RDF 생성<br/>SHACL → SPARQL → SHACL"]
+  SRC -->|adaptive 또는 일반 오류| FULL["LLM 로그·선택 소스 분석"]
+  SRC -->|graph_compact의 지원 파일 읽기| KG["정적 사실 추출·RDF 생성<br/>SHACL → SPARQL → SHACL"]
   KG -->|후보 없음·상한 초과| FULL
   KG -->|지원 후보 있음| REVIEW["LLM이 원문 근거와 후보 검토<br/>짧은 채택·보류 응답"]
   REVIEW -->|채택| PLAN["서버 템플릿으로<br/>근거·수정안·검증·롤백 조립"]
@@ -50,6 +51,7 @@ flowchart LR
 
 - 분석 상태는 `diagnosed`·`insufficient_evidence`·`no_failure_evidence`다. 정보 부족도 유효한 진단이면 `job_status=succeeded`이며, 모델 실행 실패·시간 초과와 구분한다.
 - 로그는 `EV`, 읽은 소스 줄은 `SC`로 추적한다. 후보와 코드 분석의 참조·파일·줄 범위를 검증한다. SHACL은 그래프 구조·속성·참조를 검사하고 SPARQL은 고정된 관계 규칙으로 후보를 연결한다. 이 검증이 실제 원인이나 배포 커밋 일치를 보증하지는 않는다.
+- TypeScript·C/C++·Go·Rust·C# 진단, Node/Python 예외, ESLint·Webpack·셸의 지원 로그 형식에서 파일·행·열을 추출한다. 실제로 제공된 파일의 주변 코드를 선택하며 보고된 위치와 원인 위치를 구분한다. 언어 전체의 문법 검사나 수정 후 컴파일을 실행하는 기능은 아니다([오류 위치 분석](docs/ERROR_LOCATIONS.md)).
 - compact LLM에는 그래프 후보뿐 아니라 제공 범위의 로그·선택 소스·배포 설정과 한계도 보낸다. 동일한 로그 텍스트만 묶고 발생 ID·시각·순서는 유지한다. LLM이 채택한 경우 긴 공통 절차는 서버가 조립한다.
 - 사전 소스 조회가 불가능하면 로그 우선 경로를 사용한다. 이미 유효한 로그 진단이 있으면 후속 소스 조회·분석 실패 시 그 결과를 유지한다. compact 판단이 보류되거나 검증에 실패하면 읽은 소스를 재사용해 일반 소스 분석을 한 번 수행한다. 인증·통신·사용 한도·시간 초과 오류를 이 방식으로 재시도하지 않는다.
 - 해결안은 적용 조건·수정 예시·검증·롤백을 담은 제안이고 `remediation_execution=not_executed`다. 일반 프롬프트는 `remediation.reason`에 사람이 확인·제공·결정해야 하는 구체적인 이유를 요구하며, compact 경로는 LLM의 `uncertainty`를 이 필드에 유지한다.
@@ -59,8 +61,8 @@ flowchart LR
 | 모드 | 설정 | 동작 | 상세 |
 | --- | --- | --- | --- |
 | standard | `AGENT_DIAGNOSIS_MODE=standard` (기본) | 로그 진단 후 필요하면 소스 재진단, 진단 단계의 모델 호출 최대 2회 | [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md) |
-| adaptive | `AGENT_DIAGNOSIS_MODE=adaptive` | 조건에 맞는 Node `ENOENT`의 스택 소스를 먼저 읽어 1회 진단. 사전 조회가 불가능하면 로그 우선 경로 | [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md) |
-| graph_compact | `AGENT_DIAGNOSIS_MODE=graph_compact` | 사전 소스·선택적 배포 설정으로 근거 그래프 생성, LLM의 짧은 판단과 서버 템플릿으로 1회 진단. 보류 시 일반 소스 분석 1회 추가 | [GRAPH_COMPACT](docs/GRAPH_COMPACT.md), [DEPLOYMENT_REMEDIATION](docs/DEPLOYMENT_REMEDIATION.md) |
+| adaptive | `AGENT_DIAGNOSIS_MODE=adaptive` | 지원 로그의 오류 위치 주변 소스를 먼저 읽어 1회 진단. 기존 ENOENT 파일 읽기 경로 유지. 사전 조회 불가 시 로그 우선 경로 | [ERROR_LOCATIONS](docs/ERROR_LOCATIONS.md), [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md) |
+| graph_compact | `AGENT_DIAGNOSIS_MODE=graph_compact` | 일반 오류는 위치 기반 소스 분석 1회. 지원 ENOENT는 그래프 후보·짧은 LLM 판단·서버 템플릿 사용. compact 보류 시 일반 분석 추가 | [GRAPH_COMPACT](docs/GRAPH_COMPACT.md), [ERROR_LOCATIONS](docs/ERROR_LOCATIONS.md) |
 | 지식 그래프 shadow | `AGENT_KG_MODE=shadow` (기본 off) | 위 모드와 독립적인 결과 관찰 옵션. 진단 결과를 RDF로 투영해 비동기 SHACL 검증·내부 저장. 진단 판단을 변경하지 않음 | [KNOWLEDGE_GRAPH_SHADOW](docs/KNOWLEDGE_GRAPH_SHADOW.md) |
 
 graph_compact의 배포 추론은 같은 소스 아카이브의 `Dockerfile`, 적용되는 `Dockerfile.dockerignore` 또는 `.dockerignore`, 대상 파일 목록을 대조한다. 지원하는 COPY 누락 사례에서는 파일 한 개를 복사할 정확한 Dockerfile 위치와 재빌드 검증 절차를 제안한다. 대상 데이터 파일 내용은 존재 확인만을 위해 읽거나 모델에 보내지 않는다. 실제 이미지·빌드 문맥·마운트·데이터 공급 계약은 별도 확인이 필요하다.
@@ -73,6 +75,7 @@ graph_compact의 배포 추론은 같은 소스 아카이브의 `Dockerfile`, �
 - [배포 구성 확장 전 graph_compact 비교](docs/GRAPH_COMPACT.md): 지원 사례 4건에서 adaptive 대비 응답 중앙값 20.471초 → 3.011초. 같은 모델·Fast 설정으로 비교했으며, 전체 8건 중 빠른 경로를 지원하는 4건의 값이다.
 - [배포 구성 추론 평가](docs/DEPLOYMENT_REMEDIATION.md): COPY 누락 4.478초, 이미 COPY가 있는 사례 12.752초, ignore 제외 사례 18.369초. 각 1회 실제 모델 호출, 로컬 API·fixture S3 기준이며 10초 이내는 1/3이다. 실제 Docker 빌드·운영 p95·운영 장애 정확도를 입증한 결과는 아니다.
 - 2026-10-04 통합본은 자동 테스트 470개와 Ruff 검사를 통과했다. 모의 모델 기반 구현 검증이며 실제 진단 정확도와 구분한다.
+- 이후 오류 위치 확장본은 자동 테스트 **533개**와 Ruff 검사를 통과했으며 OpenAPI가 동일함을 확인했다. 실제 LLM 품질·지연 재측정은 포함하지 않았다([검증 범위](docs/ERROR_LOCATIONS.md#구현과-검증)).
 
 ![동일 조건에서 adaptive와 graph_compact의 응답 시간·토큰 비교](docs/figures/evaluation/fig01_matched_performance.png)
 
@@ -104,6 +107,7 @@ LLM과 온톨로지는 역할이 다른 계층이다. `graph_compact`에서는 �
 ```text
 src/ai_error_check_agent/  진단 코어 · API(api.py) · CLI · 소스 조회(source_archive.py)
   knowledge/              RDF·SHACL·SPARQL · 파일 읽기/배포 사실 추출
+  error_locations.py      문법·컴파일·런타임 오류 위치 추출과 주변 소스 선택
   graph_compact.py         짧은 LLM 판단과 기존 응답 조립
   packaging_plan.py        Dockerfile COPY 수정안·검증·롤백 템플릿
 config/ examples/          OpenCode 전용 설정 · 합성 요청·참조 답변
@@ -194,7 +198,8 @@ docker run --rm --env-file .env -e AGENT_RUNTIME=opencode -p 127.0.0.1:8001:8001
 
 - 구현: `POST /diagnose`(v3)·`GET /models`·CLI, direct/OpenCode 런타임, 백엔드 제공 소스 분석, 세 진단 모드, 선택형 assist·shadow. 입력·출력 API 필드를 바꾸지 않고 배포 구성 추론을 확장했다.
 - 연동: management EKS용 배포 설정과 WAS 자동 호출·결과 저장 흐름이 있다. 에이전트 자체에는 사용자 권한 DB·내구성 있는 진단 작업 큐가 없으며, 실제 파드 상태·배포된 커밋은 이 문서의 코드 검증 범위에 포함하지 않는다.
-- graph_compact 빠른 경로는 제한된 Node `ENOENT` 파일 읽기와 단순 단일 단계 Dockerfile의 COPY 누락 후보를 지원한다. 멀티스테이지·동적 경로·복잡한 ignore 규칙 등은 일반 분석으로 넘긴다. 모든 장애의 원인 추론이나 10초 이내 응답을 보장하지 않는다.
+- 일반 오류는 지원하는 로그 형식에서 파일·행·열을 추출하고 최대 3개 파일의 주변 소스로 분석한다. 저장소 전체 검사·source map 역변환·컴파일러 실행·수정안 구문 검증은 하지 않는다. 위치 파악과 원인·해결안의 의미적 정확도는 별도다.
+- graph_compact의 짧은 판단·템플릿 경로는 제한된 Node `ENOENT` 파일 읽기와 단순 단일 단계 Dockerfile의 COPY 누락 후보를 지원한다. 일반 오류는 전체 진단 JSON을 생성하므로 같은 속도를 보장하지 않으며, 모든 장애의 원인 추론이나 10초 이내 응답을 보장하지 않는다.
 - 배포 추론의 S3 조회에서는 스택 소스·Dockerfile·적용 ignore 파일의 최대 3개 텍스트와 파일 목록을 사용한다. 전체 파일 120줄 이하·선택 소스 합계 8KiB 범위에서 처리하며, 파일 부재와 미조회·미지원 상태를 구분한다. 실제 이미지·마운트·데이터 계약은 독립 검증하지 않는다.
 - COPY 제안은 `kind=configuration`, `snippet_kind=template`이다. 검증된 diff나 실행 완료를 의미하지 않으며, 비코드 계획을 `configuration_required`로 처리하는 현재 코드 수정 후보 API의 자동 적용 대상도 아니다.
 - 로그·메타데이터의 기본 입력 예산은 16KiB다. 에이전트는 초과 입력을 거절하고 임의로 로그를 발췌하지 않는다. WAS가 전달 전에 예산에 맞춰 선택할 수 있으므로 누락·잘림 표시는 함께 해석해야 한다. 기본 동시 처리 한도는 API 프로세스당 2건이며 초과 시 `429 BUSY`다.
@@ -203,6 +208,7 @@ docker run --rm --env-file .env -e AGENT_RUNTIME=opencode -p 127.0.0.1:8001:8001
 
 ## 문서
 
+- 공통 오류 위치·소스 분석: [ERROR_LOCATIONS](docs/ERROR_LOCATIONS.md)
 - 개발·평가: [DIAGNOSIS_LATENCY](docs/DIAGNOSIS_LATENCY.md), [GRAPH_COMPACT](docs/GRAPH_COMPACT.md), [DEPLOYMENT_REMEDIATION](docs/DEPLOYMENT_REMEDIATION.md), [KNOWLEDGE_GRAPH_SHADOW](docs/KNOWLEDGE_GRAPH_SHADOW.md), [RELATION_REASONING](docs/RELATION_REASONING.md)(관계 추론 `AGENT_REASONING_MODE=assist`), [REMEDIATION_V2](docs/REMEDIATION_V2.md), [EVALUATION](docs/EVALUATION.md)
 - 연동·실행: [BACKEND_JSON_V04](docs/BACKEND_JSON_V04.md), [API_SOURCE_ANALYSIS](docs/API_SOURCE_ANALYSIS.md), [OPENCODE_INTEGRATION](docs/OPENCODE_INTEGRATION.md), [DOCKER](docs/DOCKER.md), [LOCAL_RUN](docs/LOCAL_RUN.md)
 - 테스트 보고서: `docs/*_TEST_REPORT_*.md`, [SYNTHETIC_DIAGNOSIS_EVALUATION](docs/SYNTHETIC_DIAGNOSIS_EVALUATION_2026-10-03.md)

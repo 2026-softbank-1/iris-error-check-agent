@@ -4,6 +4,8 @@
 
 ## 적용과 범위
 
+2026-10-04 확장: 이 모드에서도 문법·컴파일·일반 런타임 오류의 파일·행·열을 추출해 관련 소스와 함께 한 번 분석한다. 이 일반 경로는 Dockerfile이나 파일 읽기 그래프를 만들지 않는다. 아래 ‘빠른 경로’의 제한과 기존 실측은 짧은 그래프 판단·템플릿 경로에 관한 내용이다. 상세는 [ERROR_LOCATIONS](ERROR_LOCATIONS.md)를 참고한다.
+
 ```dotenv
 AGENT_DIAGNOSIS_MODE=graph_compact
 ```

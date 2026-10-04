@@ -19,6 +19,15 @@ from .diagnosis_routing import (
     candidate_ranges,
     complete_ranges,
 )
+from .error_locations import (
+    LOCATION_PREFETCH_PROMPT,
+    LOCATION_PROMPT,
+    LOCATION_REASON,
+    extract_error_locations,
+    fit_location_ranges,
+    location_payload,
+    location_ranges,
+)
 from .errors import DiagnosisError
 from .graph_compact import FALLBACK_CODES, CompactDecision, CompactService, expand
 from .graph_compact import PROMPT as COMPACT_PROMPT
@@ -184,6 +193,16 @@ def select_source(index, requests, *, max_bytes=8192):
     return evidence, ranges, limitations
 
 
+def with_error_locations(prompt, data, schema, locations, profile):
+    """Optional hints must never displace logs or exceed the existing budget."""
+    hints = location_payload(locations)
+    if hints:
+        enriched = {**data, "error_locations": hints}
+        if prompt_size(prompt + LOCATION_PROMPT, enriched, schema) <= profile.max_prompt_bytes:
+            return prompt + LOCATION_PROMPT, enriched
+    return prompt, data
+
+
 async def diagnose_with_source(
     payload,
     runtime_factory,
@@ -200,6 +219,8 @@ async def diagnose_with_source(
     reasoning_reports = []
     settings = diagnosis_settings or DiagnosisSettings()
     prefetched = None
+    location_prefetch = False
+    prefetch_reason = REASON
     preliminary_stages = []
     compact_accepted = False
     deployment_context = None
@@ -214,6 +235,12 @@ async def diagnose_with_source(
             prepare_backend(backend_data, request, runtime.profile.max_evidence_bytes)
             if backend_data
             else prepare(request, runtime.profile.max_evidence_bytes)
+        )
+        locations = extract_error_locations(
+            bundle,
+            root_directory=backend_data.source.root_directory
+            if backend_data and backend_data.source
+            else ".",
         )
         if settings.mode != "standard" and (index or archive_loader is not None):
             requests = candidate_ranges(bundle)
@@ -266,11 +293,45 @@ async def diagnose_with_source(
                     # No model call was spent. The normal path decides whether to
                     # use source; request-local loader failures/bytes are reused.
                     route_reason = "prefetch_unavailable"
+        if (
+            prefetched is None
+            and settings.mode != "standard"
+            and (index or archive_loader is not None)
+        ):
+            requests = location_ranges(locations)
+            if requests and bundle.context.get("deployment_status") != "succeeded":
+                try:
+                    prefetch_index, prefetch_limits = index, []
+                    if archive_loader is not None:
+                        # General errors need only the reported source files. Do not
+                        # add Dockerfile/ignore facts to an unrelated syntax error.
+                        snapshot, requests, prefetch_limits = await archive_loader(requests, bundle)
+                        prefetch_index = source_index(snapshot)
+                    requests, position_limits = fit_location_ranges(
+                        prefetch_index, requests, locations
+                    )
+                    evidence, ranges, limits = select_source(prefetch_index, requests)
+                    if evidence:
+                        prefetched = (
+                            requests,
+                            evidence,
+                            ranges,
+                            prefetch_limits + position_limits + limits,
+                        )
+                        location_prefetch = True
+                        prefetch_reason = LOCATION_REASON
+                        route_reason = "reported_error_source"
+                except DiagnosisError:
+                    route_reason = "location_prefetch_unavailable"
         if prefetched:
             candidate_data = bundle.model_payload()
             candidate_data.update(source_evidence=prefetched[1], source_limitations=prefetched[3])
-            candidate_prompt = load_prompt() + CODE_PROMPT + PREFETCH_PROMPT + CONCISE_PROMPT
+            prefetch_prompt = LOCATION_PREFETCH_PROMPT if location_prefetch else PREFETCH_PROMPT
+            candidate_prompt = load_prompt() + CODE_PROMPT + prefetch_prompt + CONCISE_PROMPT
             candidate_schema = stage_schema("source_findings", SourceFindings)
+            candidate_prompt, candidate_data = with_error_locations(
+                candidate_prompt, candidate_data, candidate_schema, locations, runtime.profile
+            )
             # Match the direct adapter's full-schema/input accounting before
             # choosing this route. An oversize prefetch must not lose log-only output.
             size = len(
@@ -289,7 +350,7 @@ async def diagnose_with_source(
         if prefetched:
             _, evidence, _, limits = prefetched
             data.update(source_evidence=evidence, source_limitations=limits)
-            prompt = load_prompt() + CODE_PROMPT + PREFETCH_PROMPT
+            prompt = load_prompt() + CODE_PROMPT + prefetch_prompt
             extra_name, extra_model = "source_findings", SourceFindings
         else:
             data["source_manifest"] = [
@@ -303,8 +364,9 @@ async def diagnose_with_source(
         if settings.mode != "standard":
             prompt += CONCISE_PROMPT
         schema = stage_schema(extra_name, extra_model)
+        prompt, data = with_error_locations(prompt, data, schema, locations, runtime.profile)
         packet = None
-        if prefetched and settings.mode == "graph_compact":
+        if prefetched and settings.mode == "graph_compact" and not location_prefetch:
             service = compact_service or CompactService()
             packet, compact_report = await service.prepare(
                 request, bundle, prefetched[1], deployment_context
@@ -434,7 +496,7 @@ async def diagnose_with_source(
     if prefetched:
         requests, evidence, ranges, limits = prefetched
         source.update(
-            reason=REASON,
+            reason=prefetch_reason,
             requested_files=requests,
             evidence=evidence,
             read_ranges=ranges,
@@ -443,7 +505,10 @@ async def diagnose_with_source(
         )
         source["limitations"].extend(limits)
         source["limitations"].append(
-            "사전 선택한 파일과 읽기 범위만 확인했습니다. 실제 빌드 문맥·이미지·마운트 및 데이터 공급 계약은 미확인입니다."
+            "로그가 가리킨 파일의 일부만 확인했습니다. 호출·파서 오류 위치는 실제 원인 위치와 "
+            "다를 수 있으며 컴파일러·린터 실행이나 수정 검증은 수행하지 않았습니다."
+            if location_prefetch
+            else "사전 선택한 파일과 읽기 범위만 확인했습니다. 실제 빌드 문맥·이미지·마운트 및 데이터 공급 계약은 미확인입니다."
         )
         if archive_loader is not None:
             source["archive_sha256"] = getattr(archive_loader, "archive_sha256", None)
@@ -463,6 +528,10 @@ async def diagnose_with_source(
             source["status"] = "not_needed"
         else:
             requests = selection["files"]
+            location_selection = not requests and bool(locations)
+            if location_selection:
+                requests = location_ranges(locations, prefetch=False)
+                source["requested_files"] = requests
             if archive_loader is not None:
                 try:
                     snapshot, requests, archive_limits = await archive_loader(requests, bundle)
@@ -476,6 +545,10 @@ async def diagnose_with_source(
                         "소스를 읽지 못하여 로그 단계의 진단을 유지합니다."
                     )
                     requests = []
+            if location_selection and requests:
+                requests, position_limits = fit_location_ranges(index, requests, locations)
+                source["requested_files"] = requests
+                source["limitations"].extend(position_limits)
             if not requests and source["status"] != "failed":
                 source["limitations"].append("관련 파일이 없거나 조회 범위를 특정하지 못했습니다.")
             evidence, ranges, limits = select_source(index, requests)
@@ -489,6 +562,9 @@ async def diagnose_with_source(
                     if settings.mode != "standard":
                         prompt += CONCISE_PROMPT
                     schema = stage_schema("source_findings", SourceFindings)
+                    prompt, data = with_error_locations(
+                        prompt, data, schema, locations, runtime.profile
+                    )
                     if reasoning_service is not None:
                         prompt, data, report = await reasoning_service.apply(
                             request,
