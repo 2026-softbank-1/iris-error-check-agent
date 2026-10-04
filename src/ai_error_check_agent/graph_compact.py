@@ -21,7 +21,7 @@ LOGGER = logging.getLogger(__name__)
 class CompactDecision(StrictModel):
     decision: Literal["accept", "defer"]
     candidate_id: str
-    plan: Literal["provide_verified_file", "defer"]
+    plan: Literal["provide_verified_file", "add_docker_copy", "defer"]
     summary: Annotated[str, Field(max_length=400)]
     uncertainty: Annotated[str, Field(max_length=300)]
     counter_evidence_ids: Annotated[list[str], Field(max_length=8)]
@@ -40,7 +40,7 @@ accept는 제공된 실행 기록의 실제 파일 읽기 실패와 소스 경�
 관찰된 실패 자체를 지지할 근거가 부족하거나 계획의 적용 조건에 반하는 사실이 있으면
 decision=defer, plan=defer로 해 더 넓은 기존 분석을 요청한다.
 반대 근거가 있으면 counter_evidence_ids에 실제 EV ID를 쓰고 defer한다. 없으면 []다.
-accept이면 candidate_id=C1, plan=provide_verified_file로 하고 summary에 관찰 범위의 진단을,
+accept이면 candidate_id=C1, 기본 plan=provide_verified_file로 하고 summary에 관찰 범위의 진단을,
 uncertainty에 남은 불확실성을 짧은 한국어 문장으로 쓴다. 직접 확인하지 않은 배포 원인을 추가하지 않는다.
 uncertainty는 '사람의 조치가 필요해요'의 이유로도 표시된다. 자동으로 파일을 공급할 수 없는
 구체적인 이유와 사람이 확인·제공해야 할 원본이나 공급 계약을 근거에 맞게 1~3문장으로 적는다.
@@ -49,6 +49,15 @@ uncertainty는 '사람의 조치가 필요해요'의 이유로도 표시된다. 
 않는 파일 공급 템플릿을 제안한다. 빈 파일/빈 배열로 오류를 숨기지 않는다. 실제 적용 환경이 Bash+Node.js이고
 시작 전 공급 단계가 적합한 경우만 사용한다. 복사 전 데이터 검증, 실행 사용자 읽기 권한, 재배포 후 원래 오류의
 소멸·상태·기능을 검증한다. 이전 공급 설정으로 롤백하되 운영 데이터를 보존하고 데이터 복구를 보장하지 않는다.
+packaging_candidate가 있으면 배포 후보와 deployment_code도 검토한다. 이는 제공 아카이브의 대상 파일 존재,
+제한된 Dockerfile COPY 해석과 실제 적용되는 제외 규칙을 대조한 조건부 후보다. 실제 빌드·이미지 증명은 아니다.
+이 후보와 파일의 이미지 공급 계획이 로그·소스 문맥에 부합하면 plan=add_docker_copy로 하고
+summary에 '제공 Dockerfile의 COPY 누락 후보'를 설명한다. 후보가 있는데 계획 조건에 반하는 사실이 있거나
+그 후보를 채택할 수 없으면 defer한다. packaging_candidate 없이 add_docker_copy를 선택할 수 없다.
+Docker 계획: 후보에 있는 정확한 파일 하나의 COPY를 확인된 Dockerfile 위치에 추가하는 검토용 템플릿이다.
+동일 커밋·빌드 문맥·Dockerfile 사용 여부와 정적 초기 파일의 이미지 포함 계약을 먼저 확인한다.
+원본 데이터·비밀값 포함 여부를 검토하고 재빌드 이미지에서 실행 사용자 읽기·내용·앱 기동·상태·기능을 확인한다.
+영속 데이터·외부 마운트 공급 계약이면 이 COPY 계획을 적용하지 않는다. 서버는 빌드·패치·배포를 실행하지 않는다.
 """
 
 
@@ -60,13 +69,15 @@ class CompactService:
         self._task = None
         self.last_report = None
 
-    async def prepare(self, request, bundle, evidence):
+    async def prepare(self, request, bundle, evidence, deployment_context=None):
         if self._task is not None and not self._task.done():
             self.last_report = {"stage": "source", "variant": "graph_compact", "status": "busy"}
             return None, self.last_report
         from .knowledge.compact import build
 
-        task = asyncio.create_task(asyncio.to_thread(build, request, bundle, evidence))
+        task = asyncio.create_task(
+            asyncio.to_thread(build, request, bundle, evidence, deployment_context)
+        )
         self._task = task
         # A timed-out/cancelled caller does not cancel the thread or free its slot
         # while still running. Retrieve exceptions even after that caller leaves.
@@ -108,6 +119,10 @@ def expand(text, packet):
     ):
         raise DiagnosisError("INVALID_COMPACT_RESULT", "후보 참조 또는 한국어 설명이 잘못됐습니다.")
     candidate = packet["candidate"]
+    packaging = packet.get("packaging_candidate")
+    expected_plan = "add_docker_copy" if packaging else "provide_verified_file"
+    if decision.plan != expected_plan:
+        raise DiagnosisError("INVALID_COMPACT_RESULT", "근거가 있는 계획만 채택할 수 있습니다.")
     target = candidate["target"]
     # The graph builder accepts only this restricted literal path alphabet.
     if not re.fullmatch(r"/[A-Za-z0-9_./-]{1,180}", target):
@@ -148,6 +163,10 @@ def expand(text, packet):
             }
         ]
     }
+    if packaging:
+        from .packaging_plan import apply_packaging_plan
+
+        apply_packaging_plan(value, packaging, packet, decision.uncertainty)
     return json.dumps(value, ensure_ascii=False)
 
 

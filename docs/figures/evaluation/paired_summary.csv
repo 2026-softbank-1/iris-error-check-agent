@@ -1,0 +1,7 @@
+subset,mode,n,median_ms,mean_input_tokens,mean_output_tokens,mean_total_tokens,within_10s,contract_valid,status_matches,provider_calls
+all,adaptive,8,19921.5,8305.625,1649.5,9955.125,2,8,8,9
+all,graph_compact,8,6017.0,5851.625,850.875,6702.5,5,8,8,10
+compact_eligible,adaptive,4,20470.5,7376,1770.75,9146.75,0,4,4,4
+compact_eligible,graph_compact,4,3011.0,1983,198.5,2181.5,4,4,4,4
+fallback_controls,adaptive,4,11797.0,9235.25,1528.25,10763.5,2,4,4,5
+fallback_controls,graph_compact,4,12051.5,9720.25,1503.25,11223.5,1,4,4,6

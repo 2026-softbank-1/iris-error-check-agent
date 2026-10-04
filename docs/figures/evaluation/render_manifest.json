@@ -1,0 +1,29 @@
+{
+  "data_sha256": "3466126cbfa4faae99eee27de59891517ae949344cacfab634e17301ed6558db",
+  "matplotlib": "3.11.2",
+  "numpy": "2.5.3",
+  "font": "Times New Roman",
+  "width_inches": 7.16,
+  "png_dpi": 900,
+  "files": {
+    "fig01_matched_performance.png": "d3b2646c8c9c36f5a0b3da58a35aa97bcae7f4159ff3f02c492ed531950bef3b",
+    "fig01_matched_performance.pdf": "a9c393fa9790c1966fcb5ffd22a28317a3fb40ce09e09e65a25fca3cb349da5a",
+    "fig01_matched_performance.svg": "17b707eb0482fde400f4a9b8587bdbc45f355bede9851c75c2cae44a78c2925f",
+    "fig02_architecture_history.png": "c071b0f58424c30179ba156c6a5a1c09d2d82f58296a0f2ae162211acb88da04",
+    "fig02_architecture_history.pdf": "3218a47621ef4547b61b649b0e5d450178ca094cf8ba9ba9dde245d159223d04",
+    "fig02_architecture_history.svg": "f273e5f989dbfe02557b5f8338e64c1813c79ba31e0b77202909177bcd238031",
+    "fig03_deployment_cases.png": "a6dbffe4f31eb8935f3e4702661f1adf7eb8dfa0647016ef908a7f69547ab17d",
+    "fig03_deployment_cases.pdf": "60defb858a00c5e3b5ba56c4936188f9c0d78a899c02b696d92f9e6989cb7c65",
+    "fig03_deployment_cases.svg": "7012b2befa5d8fdd94382e1eca63153f142b4d3e034fa177d681ea5fa5ead313",
+    "fig04_synthetic_quality.png": "4550393f1baab2eaf6e503899327f8f03aab05b1530bd1fe48084fe22667a46a",
+    "fig04_synthetic_quality.pdf": "b52b43041c75504d695d0d78e3744825461059c4aec72c18fc0e775e14fa1563",
+    "fig04_synthetic_quality.svg": "e41ebae1c48ac1f2b25470822b10650d12d016be99ad80ac66a8a23c41aceb46",
+    "fig05_relation_ablation.png": "8c74da5f9c72ae68d8a6e506431f0dcb6c6f1cd557398b8e34405975cb710476",
+    "fig05_relation_ablation.pdf": "8a390fde1b7b476f5853b13f19a11e1b49d3cf723a08b1be4c0b054439780e61",
+    "fig05_relation_ablation.svg": "b39a83b93c273e7350e7f317b350b0a1f19a47163af3a6d408baeef25abc1dac",
+    "fig06_graph_overhead.png": "1f36c02869b242863dcc1950d25bdb2747b63e460a5da2dd3de4270294f214ed",
+    "fig06_graph_overhead.pdf": "77bccc342b6ae8a2061e73503a45d280d3889d3883f9c5f191465affaeff5e60",
+    "fig06_graph_overhead.svg": "bc82e2e009ce37f7f9eac6ea5b74b961345162d3f063e0f6daac1c150b4013ff"
+  },
+  "validation": "Recomputed paired aggregates and token totals match recorded summaries."
+}

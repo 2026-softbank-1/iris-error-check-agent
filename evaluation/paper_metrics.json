@@ -1,0 +1,1426 @@
+{
+  "schema_version": "ieee-figures.v1",
+  "measurement_date": "2026-10-03",
+  "figure_date": "2026-10-04",
+  "note": "Historical recorded measurements. No new LLM calls. Curated synthetic cases; not production accuracy. Different experiments remain separate.",
+  "history": {
+    "stages": [
+      {
+        "key": "initial",
+        "label": "초기 2단계",
+        "flow": "로그 → 필요시 코드 분석",
+        "mode": "standard",
+        "case": "missing-task-data",
+        "tier": "default",
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "low",
+        "max_output_tokens": 4096,
+        "n": 1,
+        "elapsed_s": 70.591,
+        "input_tokens": 14699,
+        "output_tokens": 4203,
+        "reasoning_tokens_included_in_output": 135,
+        "total_tokens": 18902,
+        "provider_calls": 2,
+        "source_files": [
+          "src/app.js",
+          "src/tasks.js"
+        ],
+        "source_file_count": 2,
+        "source_evidence_lines": 51,
+        "log_evidence_lines": 5,
+        "graph_triples": null,
+        "graph_facts": null,
+        "graph_candidates": null,
+        "graph_ms_first_initialization_included": null,
+        "change_targets": [
+          "/app/data/tasks.json"
+        ],
+        "source_summary": "results/adaptive-latency-20261003/adaptive-live-default-network/summary.json",
+        "source_result": "results/adaptive-latency-20261003/adaptive-live-default-network/missing-task-data.standard.json"
+      },
+      {
+        "key": "compact",
+        "label": "기존 graph_compact",
+        "flow": "파일 읽기 관계 + 짧은 LLM 판단",
+        "mode": "graph_compact",
+        "case": "missing-task-data",
+        "tier": "fast",
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "low",
+        "max_output_tokens": 4096,
+        "n": 1,
+        "elapsed_s": 3.149,
+        "input_tokens": 1872,
+        "output_tokens": 204,
+        "reasoning_tokens_included_in_output": 0,
+        "total_tokens": 2076,
+        "provider_calls": 1,
+        "source_files": [
+          "src/tasks.js"
+        ],
+        "source_file_count": 1,
+        "source_evidence_lines": 10,
+        "log_evidence_lines": 5,
+        "graph_triples": 36,
+        "graph_facts": 3,
+        "graph_candidates": 1,
+        "graph_ms_first_initialization_included": 123.176,
+        "change_targets": [
+          "/app/data/tasks.json"
+        ],
+        "source_summary": "results/graph-compact-20261003/final/summary.json",
+        "source_result": "results/graph-compact-20261003/final/missing-task-data.graph_compact.json"
+      },
+      {
+        "key": "current",
+        "label": "현재 배포 추론",
+        "flow": "파일 읽기 + Docker 구성 + 수정 위치",
+        "mode": "graph_compact",
+        "case": "docker-copy-omission",
+        "tier": "fast",
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "low",
+        "max_output_tokens": 4096,
+        "n": 1,
+        "elapsed_s": 4.478,
+        "input_tokens": 2840,
+        "output_tokens": 212,
+        "reasoning_tokens_included_in_output": 0,
+        "total_tokens": 3052,
+        "provider_calls": 1,
+        "source_files": [
+          ".dockerignore",
+          "Dockerfile",
+          "src/tasks.js"
+        ],
+        "source_file_count": 3,
+        "source_evidence_lines": 27,
+        "log_evidence_lines": 5,
+        "graph_triples": 117,
+        "graph_facts": 6,
+        "graph_candidates": 2,
+        "graph_ms_first_initialization_included": 172.706,
+        "change_targets": [
+          "Dockerfile"
+        ],
+        "source_summary": "results/packaging-20261003/final/summary.json",
+        "source_result": "results/packaging-20261003/final/docker-copy-omission.graph_compact.json"
+      }
+    ],
+    "limitations": [
+      "대표 ENOENT 사례의 저장된 실행 1회씩이다. 반복 평균이나 운영 p95가 아니다.",
+      "초기 수치는 초기 2단계 흐름을 유지한 standard 모드 측정이다. 가장 첫 Git 커밋의 신규 재측정이 아니다.",
+      "초기는 default, 이후 두 버전은 fast이다. 관측 차이를 아키텍처만의 인과적 개선율로 해석하지 않는다.",
+      "현재 버전은 Dockerfile·ignore·파일 목록을 추가 확인한다. 원본 데이터셋·제공 소스 범위·프롬프트가 동일하지 않다.",
+      "응답 시간은 fixture S3를 사용한 로컬 HTTP 진단 전체 측정이며 운영 수집·S3·프런트 폴링을 포함하지 않는다.",
+      "총 토큰은 input + output이다. reasoning은 output에 포함되어 다시 합산하지 않는다. 토큰 수는 금액이 아니다.",
+      "그래프 시간에는 각 실행의 첫 초기화가 포함된다. 초기의 해당 없음은 0ms 실측이 아니다.",
+      "자료·표본 수가 달라 버전 간 실제 장애 정확도를 산출하지 않는다. 코드 근거 줄 수·그래프 크기도 정확도 점수가 아니다.",
+      "현재 대조 사례의 사전 상태 일치는 2/3이다. 이미 COPY 있음은 diagnosed 대신 insufficient_evidence였으며 정답을 사후 수정하지 않았다.",
+      "현재 버전 실측 뒤 템플릿 문구·인용 위치·ignore 디렉터리 방어가 보완됐다. 저장된 코드 해시와 실행 결과를 그대로 사용한다."
+    ]
+  },
+  "paired": {
+    "dataset_sha256": "e62df60e599f79b90b633236756e80615fc28ef2ddaf86b333c725c04bc8fc0d",
+    "model": "gpt-6.1-sol",
+    "tier": "fast",
+    "reasoning_effort": "low",
+    "max_output_tokens": 4096,
+    "rows": [
+      {
+        "case": "missing-task-data",
+        "mode": "adaptive",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 21395,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7147,
+          "output": 1790,
+          "reasoning": 191
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "missing-task-data",
+        "mode": "graph_compact",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 3149,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 1872,
+          "output": 204,
+          "reasoning": 0
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 36,
+          "fact_count": 3,
+          "candidate_count": 1,
+          "total_ms": 123.176,
+          "original_log_lines": 5,
+          "distinct_log_lines": 5,
+          "retained_log_ids": 5
+        },
+        "graph_decision": "accepted",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "renamed-file",
+        "mode": "graph_compact",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 2756,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 1872,
+          "output": 174,
+          "reasoning": 0
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 36,
+          "fact_count": 3,
+          "candidate_count": 1,
+          "total_ms": 7.38,
+          "original_log_lines": 5,
+          "distinct_log_lines": 5,
+          "retained_log_ids": 5
+        },
+        "graph_decision": "accepted",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "renamed-file",
+        "mode": "adaptive",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 19409,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7147,
+          "output": 1654,
+          "reasoning": 120
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "repeated-stack",
+        "mode": "adaptive",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 20507,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 8341,
+          "output": 1846,
+          "reasoning": 130
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "repeated-stack",
+        "mode": "graph_compact",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 2873,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 2462,
+          "output": 210,
+          "reasoning": 0
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 36,
+          "fact_count": 3,
+          "candidate_count": 1,
+          "total_ms": 7.891,
+          "original_log_lines": 15,
+          "distinct_log_lines": 5,
+          "retained_log_ids": 15
+        },
+        "graph_decision": "accepted",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "direct-literal",
+        "mode": "graph_compact",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 3387,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 1726,
+          "output": 206,
+          "reasoning": 21
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 33,
+          "fact_count": 3,
+          "candidate_count": 1,
+          "total_ms": 6.939,
+          "original_log_lines": 5,
+          "distinct_log_lines": 5,
+          "retained_log_ids": 5
+        },
+        "graph_decision": "accepted",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "direct-literal",
+        "mode": "adaptive",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 20434,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 6869,
+          "output": 1793,
+          "reasoning": 235
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "recovered-same-stream",
+        "mode": "adaptive",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 8124,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "no_failure_evidence",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 6994,
+          "output": 702,
+          "reasoning": 0
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "recovered-same-stream",
+        "mode": "graph_compact",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 8647,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "no_failure_evidence",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 6994,
+          "output": 698,
+          "reasoning": 0
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "other-stream-healthy",
+        "mode": "graph_compact",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 36977,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 2,
+        "tokens": {
+          "input": 15553,
+          "output": 3486,
+          "reasoning": 165
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "other-stream-healthy",
+        "mode": "adaptive",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 40832,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 2,
+        "tokens": {
+          "input": 15553,
+          "output": 3728,
+          "reasoning": 259
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "source-target-mismatch",
+        "mode": "adaptive",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 15399,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "insufficient_evidence",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7148,
+          "output": 1047,
+          "reasoning": 76
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "source-target-mismatch",
+        "mode": "graph_compact",
+        "expected_route": "adaptive",
+        "http_status": 200,
+        "elapsed_ms": 12918,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "insufficient_evidence",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7148,
+          "output": 1009,
+          "reasoning": 77
+        },
+        "compact_calls": 0,
+        "graph_status": "unsupported",
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "expected-test-error",
+        "mode": "graph_compact",
+        "expected_route": "defer",
+        "http_status": 200,
+        "elapsed_ms": 11185,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "no_failure_evidence",
+        "status_matches": true,
+        "provider_calls": 2,
+        "tokens": {
+          "input": 9186,
+          "output": 820,
+          "reasoning": 0
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 36,
+          "fact_count": 3,
+          "candidate_count": 1,
+          "total_ms": 8.596,
+          "original_log_lines": 6,
+          "distinct_log_lines": 6,
+          "retained_log_ids": 6
+        },
+        "graph_decision": "COMPACT_DEFERRED",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      },
+      {
+        "case": "expected-test-error",
+        "mode": "adaptive",
+        "expected_route": "defer",
+        "http_status": 200,
+        "elapsed_ms": 8195,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "no_failure_evidence",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7246,
+          "output": 636,
+          "reasoning": 0
+        },
+        "compact_calls": 0,
+        "graph_status": null,
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "passes_predeclared_core_rubric"
+      }
+    ],
+    "reported_groups": {
+      "all": {
+        "adaptive": {
+          "n": 8,
+          "succeeded": 8,
+          "median_ms": 19921.5,
+          "max_ms": 40832,
+          "within_10s": 2,
+          "status_matches": 8,
+          "korean_summary": 8,
+          "mean_input_tokens": 8305.625,
+          "mean_output_tokens": 1649.5
+        },
+        "graph_compact": {
+          "n": 8,
+          "succeeded": 8,
+          "median_ms": 6017.0,
+          "max_ms": 36977,
+          "within_10s": 5,
+          "status_matches": 8,
+          "korean_summary": 8,
+          "mean_input_tokens": 5851.625,
+          "mean_output_tokens": 850.875
+        }
+      },
+      "compact_eligible": {
+        "adaptive": {
+          "n": 4,
+          "succeeded": 4,
+          "median_ms": 20470.5,
+          "max_ms": 21395,
+          "within_10s": 0,
+          "status_matches": 4,
+          "korean_summary": 4,
+          "mean_input_tokens": 7376,
+          "mean_output_tokens": 1770.75
+        },
+        "graph_compact": {
+          "n": 4,
+          "succeeded": 4,
+          "median_ms": 3011.0,
+          "max_ms": 3387,
+          "within_10s": 4,
+          "status_matches": 4,
+          "korean_summary": 4,
+          "mean_input_tokens": 1983,
+          "mean_output_tokens": 198.5
+        }
+      },
+      "fallback_controls": {
+        "adaptive": {
+          "n": 4,
+          "succeeded": 4,
+          "median_ms": 11797.0,
+          "max_ms": 40832,
+          "within_10s": 2,
+          "status_matches": 4,
+          "korean_summary": 4,
+          "mean_input_tokens": 9235.25,
+          "mean_output_tokens": 1528.25
+        },
+        "graph_compact": {
+          "n": 4,
+          "succeeded": 4,
+          "median_ms": 12051.5,
+          "max_ms": 36977,
+          "within_10s": 1,
+          "status_matches": 4,
+          "korean_summary": 4,
+          "mean_input_tokens": 9720.25,
+          "mean_output_tokens": 1503.25
+        }
+      }
+    },
+    "semantic_review": {
+      "method": "Non-blind development-set review against rubric authored before live calls. Not independent human review, production accuracy, or equivalence testing.",
+      "passes_per_mode": {
+        "adaptive": 8,
+        "graph_compact": 8
+      }
+    }
+  },
+  "packaging": {
+    "dataset_sha256": "bb5b695b180e331dd363657d7175772ad765cc7e0e4ffedb260063ec55c92026",
+    "model": "gpt-6.1-sol",
+    "tier": "fast",
+    "rows": [
+      {
+        "case": "docker-copy-omission",
+        "mode": "graph_compact",
+        "expected_route": "compact",
+        "http_status": 200,
+        "elapsed_ms": 4478,
+        "within_10s": true,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 2840,
+          "output": 212,
+          "reasoning": 0
+        },
+        "compact_calls": 1,
+        "graph_status": "ok",
+        "graph_metrics": {
+          "conforms": true,
+          "triples": 117,
+          "fact_count": 6,
+          "candidate_count": 2,
+          "total_ms": 172.706,
+          "original_log_lines": 5,
+          "distinct_log_lines": 5,
+          "retained_log_ids": 5
+        },
+        "graph_decision": "accepted",
+        "error": null,
+        "source_error": null,
+        "semantic_review": "pending"
+      },
+      {
+        "case": "already-copied",
+        "mode": "graph_compact",
+        "expected_route": "fallback",
+        "http_status": 200,
+        "elapsed_ms": 12752,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "insufficient_evidence",
+        "status_matches": false,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7848,
+          "output": 1043,
+          "reasoning": 81
+        },
+        "compact_calls": 0,
+        "graph_status": "unsupported",
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "pending"
+      },
+      {
+        "case": "ignored-file",
+        "mode": "graph_compact",
+        "expected_route": "fallback",
+        "http_status": 200,
+        "elapsed_ms": 18369,
+        "within_10s": false,
+        "contract_valid": true,
+        "status": "diagnosed",
+        "status_matches": true,
+        "provider_calls": 1,
+        "tokens": {
+          "input": 7837,
+          "output": 1940,
+          "reasoning": 68
+        },
+        "compact_calls": 0,
+        "graph_status": "unsupported",
+        "graph_metrics": null,
+        "graph_decision": null,
+        "error": null,
+        "source_error": null,
+        "semantic_review": "pending"
+      }
+    ],
+    "summary_rows": [
+      {
+        "case": "docker-copy-omission",
+        "label": "COPY 누락",
+        "outcome": "축약 채택 · Dockerfile 수정 위치 제안",
+        "elapsed_s": 4.478,
+        "input_tokens": 2840,
+        "output_tokens": 212,
+        "total_tokens": 3052,
+        "provider_calls": 1,
+        "status": "diagnosed",
+        "contract_valid": true,
+        "predeclared_status_match": true,
+        "compact_accepted": true
+      },
+      {
+        "case": "already-copied",
+        "label": "이미 COPY 있음",
+        "outcome": "일반 분석 · 근거 부족으로 수정안 보류",
+        "elapsed_s": 12.752,
+        "input_tokens": 7848,
+        "output_tokens": 1043,
+        "total_tokens": 8891,
+        "provider_calls": 1,
+        "status": "insufficient_evidence",
+        "contract_valid": true,
+        "predeclared_status_match": false,
+        "compact_accepted": false
+      },
+      {
+        "case": "ignored-file",
+        "label": "ignore 규칙에 제외",
+        "outcome": "일반 분석 · ignore와 Dockerfile 함께 수정",
+        "elapsed_s": 18.369,
+        "input_tokens": 7837,
+        "output_tokens": 1940,
+        "total_tokens": 9777,
+        "provider_calls": 1,
+        "status": "diagnosed",
+        "contract_valid": true,
+        "predeclared_status_match": true,
+        "compact_accepted": false
+      }
+    ]
+  },
+  "synthetic": {
+    "dataset_kind": "synthetic_curated_not_production",
+    "dataset_sha256": "4df4a5912040a25b763486e558cffc9ceda87cd0275a7b39a91e40591a164c53",
+    "model": "gpt-6.1-sol",
+    "knowledge_mode": "shadow",
+    "completed": 20,
+    "execution_errors": 0,
+    "metrics": {
+      "status_accuracy": {
+        "numerator": 20,
+        "denominator": 20,
+        "rate": 1.0,
+        "wilson_95": [
+          0.8388748419471806,
+          1
+        ]
+      },
+      "root_cause_accuracy": {
+        "numerator": 11,
+        "denominator": 12,
+        "rate": 0.9166666666666666,
+        "wilson_95": [
+          0.646120088858883,
+          0.9851349055950829
+        ]
+      },
+      "critical_evidence_hit_rate": {
+        "numerator": 12,
+        "denominator": 12,
+        "rate": 1.0,
+        "wilson_95": [
+          0.7575059933447592,
+          1
+        ]
+      },
+      "source_location_hit_rate": {
+        "numerator": 3,
+        "denominator": 4,
+        "rate": 0.75,
+        "wilson_95": [
+          0.30064184258240184,
+          0.9544127391902995
+        ]
+      },
+      "healthy_false_positive_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "insufficient_overclaim_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "graphs": {
+      "recorded": 20,
+      "conforms": 20
+    },
+    "limitations": [
+      "Synthetic curated cases, not production incident accuracy or an independent test set.",
+      "Root-cause score is a frozen category + primary-claim regex + critical-evidence rubric; it is not a complete semantic or remediation-correctness assessment.",
+      "Four code faults are reproduced locally; other scenarios are authored logs.",
+      "One real model run per case; no automatic retry, model judge, or prompt tuning.",
+      "Failures count as incorrect on attempted cases; unattempted cases stay unmeasured.",
+      "Wilson intervals describe finite-sample uncertainty only; curated cases are not a random sample of production incidents.",
+      "Graph shadow mode does not change the model context or diagnosis."
+    ],
+    "tokens": {
+      "input": 143208,
+      "output": 29717,
+      "reasoning": 117
+    },
+    "tokens_total": 172925,
+    "provider_calls": 23,
+    "latency_ms": {
+      "median": 24012.683,
+      "p95_nearest_rank": 54137.542
+    },
+    "preparation_corrections": {
+      "unchanged_gold_and_scoring": true,
+      "excluded_outputs": [
+        "initial cases 001-004: temporary path and archive wrapper defects",
+        "path-corrected cases 001-004: archive wrapper defect"
+      ],
+      "retained_outputs": "validated source cases 001-004 plus byte-equivalent input cases 005-020",
+      "all_live_attempts": [
+        {
+          "directory": "results/synthetic-accuracy-live-20261003",
+          "completed": 20,
+          "provider_calls": 20,
+          "tokens": {
+            "input": 123663,
+            "output": 25076,
+            "reasoning": 236
+          }
+        },
+        {
+          "directory": "results/synthetic-accuracy-corrected-source-20261003",
+          "completed": 4,
+          "provider_calls": 4,
+          "tokens": {
+            "input": 25902,
+            "output": 6341,
+            "reasoning": 15
+          }
+        },
+        {
+          "directory": "results/synthetic-accuracy-validated-source-20261003",
+          "completed": 4,
+          "provider_calls": 7,
+          "tokens": {
+            "input": 45462,
+            "output": 11426,
+            "reasoning": 117
+          }
+        }
+      ],
+      "provider_calls_including_preparation": 31,
+      "tokens_including_preparation": {
+        "input": 195027,
+        "output": 42843,
+        "reasoning": 368
+      }
+    }
+  },
+  "relation_ablation": {
+    "arms": {
+      "baseline": {
+        "completed": 60,
+        "metrics": {
+          "status_accuracy": {
+            "numerator": 60,
+            "denominator": 60,
+            "rate": 1.0,
+            "wilson_95": [
+              0.93982814785791,
+              0.9999999999999998
+            ]
+          },
+          "root_cause_accuracy": {
+            "numerator": 23,
+            "denominator": 24,
+            "rate": 0.9583333333333334,
+            "wilson_95": [
+              0.7975819352134406,
+              0.9926065438344942
+            ]
+          },
+          "critical_evidence_hit_rate": {
+            "numerator": 24,
+            "denominator": 24,
+            "rate": 1.0,
+            "wilson_95": [
+              0.8620237953250198,
+              1
+            ]
+          },
+          "source_location_hit_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "wilson_95": null
+          },
+          "healthy_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 24,
+            "rate": 0.0,
+            "wilson_95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ]
+          },
+          "insufficient_overclaim_rate": {
+            "numerator": 0,
+            "denominator": 12,
+            "rate": 0.0,
+            "wilson_95": [
+              2.7755575615628914e-17,
+              0.24249400665524085
+            ]
+          }
+        },
+        "execution_errors": 0,
+        "submissions": 72,
+        "provider_calls_confirmed": 72,
+        "provider_count_complete": true,
+        "tokens": {
+          "input": 457986,
+          "output": 90472,
+          "reasoning": 406
+        },
+        "latency_ms": {
+          "median": 16938.93539599958,
+          "p95_nearest_rank": 57093.245042007766
+        },
+        "inference_statuses": {},
+        "context_stages": 0,
+        "candidate_stages": 0,
+        "saved_reasoning_cases": 0,
+        "distinct_implementation_versions": 0
+      },
+      "facts": {
+        "completed": 60,
+        "metrics": {
+          "status_accuracy": {
+            "numerator": 60,
+            "denominator": 60,
+            "rate": 1.0,
+            "wilson_95": [
+              0.93982814785791,
+              0.9999999999999998
+            ]
+          },
+          "root_cause_accuracy": {
+            "numerator": 22,
+            "denominator": 24,
+            "rate": 0.9166666666666666,
+            "wilson_95": [
+              0.741511978067893,
+              0.9768411847029567
+            ]
+          },
+          "critical_evidence_hit_rate": {
+            "numerator": 24,
+            "denominator": 24,
+            "rate": 1.0,
+            "wilson_95": [
+              0.8620237953250198,
+              1
+            ]
+          },
+          "source_location_hit_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "wilson_95": null
+          },
+          "healthy_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 24,
+            "rate": 0.0,
+            "wilson_95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ]
+          },
+          "insufficient_overclaim_rate": {
+            "numerator": 0,
+            "denominator": 12,
+            "rate": 0.0,
+            "wilson_95": [
+              2.7755575615628914e-17,
+              0.24249400665524085
+            ]
+          }
+        },
+        "execution_errors": 0,
+        "submissions": 72,
+        "provider_calls_confirmed": 72,
+        "provider_count_complete": true,
+        "tokens": {
+          "input": 483687,
+          "output": 90366,
+          "reasoning": 235
+        },
+        "latency_ms": {
+          "median": 16808.47731250833,
+          "p95_nearest_rank": 56618.718792000436
+        },
+        "inference_statuses": {
+          "ok": 67,
+          "no_match": 5
+        },
+        "context_stages": 67,
+        "candidate_stages": 0,
+        "saved_reasoning_cases": 60,
+        "distinct_implementation_versions": 1
+      },
+      "rules": {
+        "completed": 60,
+        "metrics": {
+          "status_accuracy": {
+            "numerator": 59,
+            "denominator": 60,
+            "rate": 0.9833333333333333,
+            "wilson_95": [
+              0.9114487027240993,
+              0.9970518402052136
+            ]
+          },
+          "root_cause_accuracy": {
+            "numerator": 19,
+            "denominator": 24,
+            "rate": 0.7916666666666666,
+            "wilson_95": [
+              0.5952954674681133,
+              0.9075517464714814
+            ]
+          },
+          "critical_evidence_hit_rate": {
+            "numerator": 23,
+            "denominator": 24,
+            "rate": 0.9583333333333334,
+            "wilson_95": [
+              0.7975819352134406,
+              0.9926065438344942
+            ]
+          },
+          "source_location_hit_rate": {
+            "numerator": 0,
+            "denominator": 0,
+            "rate": null,
+            "wilson_95": null
+          },
+          "healthy_false_positive_rate": {
+            "numerator": 0,
+            "denominator": 24,
+            "rate": 0.0,
+            "wilson_95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ]
+          },
+          "insufficient_overclaim_rate": {
+            "numerator": 0,
+            "denominator": 12,
+            "rate": 0.0,
+            "wilson_95": [
+              2.7755575615628914e-17,
+              0.24249400665524085
+            ]
+          }
+        },
+        "execution_errors": 1,
+        "submissions": 72,
+        "provider_calls_confirmed": 71,
+        "provider_count_complete": false,
+        "tokens": {
+          "input": 486099,
+          "output": 89811,
+          "reasoning": 226
+        },
+        "latency_ms": {
+          "median": 16835.952458503016,
+          "p95_nearest_rank": 56645.4835839977
+        },
+        "inference_statuses": {
+          "ok": 67,
+          "no_match": 5
+        },
+        "context_stages": 67,
+        "candidate_stages": 42,
+        "saved_reasoning_cases": 60,
+        "distinct_implementation_versions": 1
+      }
+    },
+    "paired": {
+      "baseline_vs_rules": {
+        "both_incorrect": 1,
+        "both_correct": 19,
+        "left_only": 4
+      },
+      "facts_vs_rules": {
+        "left_only": 4,
+        "both_correct": 18,
+        "both_incorrect": 1,
+        "right_only": 1
+      }
+    },
+    "limitations": [
+      "Root-cause scores use frozen regex/category/evidence checks; equivalent wording can fail.",
+      "Provider/adapter errors stay in denominators and are not retried.",
+      "One draw per case and arm on authored, related templates; no production accuracy claim.",
+      "Blinded human semantic review has not been completed."
+    ]
+  },
+  "graph_microbenchmarks": {
+    "shadow": [
+      {
+        "case": "compile",
+        "triples": 249,
+        "before": {
+          "samples_ms": [
+            678.349,
+            677.386,
+            674.792,
+            669.206,
+            670.17,
+            673.777,
+            676.841,
+            669.953,
+            669.825,
+            670.691
+          ],
+          "median_ms": 672.234
+        },
+        "after": {
+          "cold_ms": [
+            391.101
+          ],
+          "warm_samples_ms": [
+            55.92,
+            54.43,
+            55.15,
+            54.67,
+            55.323,
+            53.918,
+            55.622,
+            54.696,
+            55.061
+          ],
+          "warm_median_ms": 55.061
+        }
+      },
+      {
+        "case": "runtime",
+        "triples": 281,
+        "before": {
+          "samples_ms": [
+            642.26,
+            689.504,
+            657.563,
+            670.14,
+            659.223,
+            657.166,
+            778.814,
+            1002.833,
+            675.266,
+            683.39
+          ],
+          "median_ms": 672.703
+        },
+        "after": {
+          "cold_ms": [
+            402.519
+          ],
+          "warm_samples_ms": [
+            59.854,
+            57.705,
+            58.795,
+            58.848,
+            59.56,
+            58.905,
+            58.292,
+            58.596,
+            58.957
+          ],
+          "warm_median_ms": 58.848
+        }
+      }
+    ],
+    "http_replay": {
+      "scope": "ASGI replay using frozen actual model outputs; no provider calls",
+      "before": {
+        "mode": "off",
+        "http_ms_median": 15.266,
+        "samples": [
+          {
+            "http_ms": 25.066
+          },
+          {
+            "http_ms": 16.215
+          },
+          {
+            "http_ms": 15.152
+          },
+          {
+            "http_ms": 14.899
+          },
+          {
+            "http_ms": 14.63
+          },
+          {
+            "http_ms": 15.149
+          },
+          {
+            "http_ms": 15.033
+          },
+          {
+            "http_ms": 15.38
+          },
+          {
+            "http_ms": 15.711
+          },
+          {
+            "http_ms": 15.391
+          }
+        ]
+      },
+      "after": {
+        "mode": "shadow",
+        "http_ms_median": 18.508,
+        "samples": [
+          {
+            "http_ms": 19.278,
+            "submit_ms": 2.261,
+            "graph_ms": 439.266
+          },
+          {
+            "http_ms": 21.857,
+            "submit_ms": 2.208,
+            "graph_ms": 56.678
+          },
+          {
+            "http_ms": 18.553,
+            "submit_ms": 2.182,
+            "graph_ms": 55.813
+          },
+          {
+            "http_ms": 18.551,
+            "submit_ms": 2.228,
+            "graph_ms": 56.112
+          },
+          {
+            "http_ms": 18.465,
+            "submit_ms": 2.183,
+            "graph_ms": 54.084
+          },
+          {
+            "http_ms": 18.113,
+            "submit_ms": 2.183,
+            "graph_ms": 55.726
+          },
+          {
+            "http_ms": 18.028,
+            "submit_ms": 2.182,
+            "graph_ms": 54.322
+          },
+          {
+            "http_ms": 17.988,
+            "submit_ms": 2.191,
+            "graph_ms": 56.187
+          },
+          {
+            "http_ms": 18.568,
+            "submit_ms": 2.21,
+            "graph_ms": 56.911
+          },
+          {
+            "http_ms": 18.048,
+            "submit_ms": 2.17,
+            "graph_ms": 54.635
+          }
+        ]
+      },
+      "http_delta_ms": 3.241999999999999
+    },
+    "reasoning": [
+      {
+        "warmup_ms": 210.4022910061758,
+        "sequential": {
+          "n": 40,
+          "p50_ms": 3.6459580005612224,
+          "p95_ms": 4.118540993658826
+        },
+        "triple_count": 49,
+        "note": "Inference wall time only, no LLM/HTTP. Busy fallback is counted separately; one worker per API process."
+      },
+      {
+        "warmup_ms": 215.09429199795704,
+        "sequential": {
+          "n": 40,
+          "p50_ms": 26.12939599202946,
+          "p95_ms": 27.62616699328646
+        },
+        "triple_count": 294,
+        "note": "Inference wall time only, no LLM/HTTP. Busy fallback is counted separately; one worker per API process.",
+        "worker_cpu_ms": 1801.321,
+        "worker_peak_rss_bytes": 51249152
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "results/adaptive-latency-20261003/adaptive-live-default-network/summary.json",
+      "sha256": "222b9fa58e41787a3d0f4efafcb587ac31681c514f81b8d4ebbe84ece7da5dd3"
+    },
+    {
+      "path": "results/adaptive-latency-20261003/adaptive-live-default-network/missing-task-data.standard.json",
+      "sha256": "9ade26da4e682de589d889137de3f37d040c015560f7bd8b09b726ba46213039"
+    },
+    {
+      "path": "results/graph-compact-20261003/final/summary.json",
+      "sha256": "3733e5983f18757661f20e1453d33a3eca26957325e1927d6aa528a882b0c734"
+    },
+    {
+      "path": "results/graph-compact-20261003/final/missing-task-data.graph_compact.json",
+      "sha256": "17aae61ce87336aa4d1694c7ddb1e97e4444062a926ee4d32de481c240b4cb87"
+    },
+    {
+      "path": "results/packaging-20261003/final/summary.json",
+      "sha256": "349095520790c16755f9e1772590bd965fb151cb3f76e084999346a0fafc2c0a"
+    },
+    {
+      "path": "results/packaging-20261003/final/docker-copy-omission.graph_compact.json",
+      "sha256": "8d721926d2074d021f10f2342ba413c5ac938dd7ad2716daa488d6a6fe87f657"
+    },
+    {
+      "path": "results/packaging-20261003/final/quality_review.json",
+      "sha256": "61fbfae713c0f9050cdd631319377c228b4f89f258559ef22b1868d667742b79"
+    },
+    {
+      "path": "results/graph-compact-20261003/final/quality_review.json",
+      "sha256": "2fd5d6100e63f42dfcc03e3ebe2fe032964dffbd09019a9c066844b0928c92c9"
+    },
+    {
+      "path": "results/synthetic-accuracy-final-20261003/summary.json",
+      "sha256": "c7419250e47ab4cc93293bcdaeb237fdbfc123d81ce0cde2206dd07ae2289a85"
+    },
+    {
+      "path": "results/relation-live-test-60/comparison.json",
+      "sha256": "58d56577c415fa0cd61d8d245eb2cbb5a11de43d83eabcd22490e188e7e750b5"
+    },
+    {
+      "path": "results/graph-performance-before-compile-source/summary.json",
+      "sha256": "1539e0d8f7083fa1b84d46fedb5e4ffb6e2f2d9e9919440cfe0a0f8beead9f0c"
+    },
+    {
+      "path": "results/graph-performance-after-compile-source/summary.json",
+      "sha256": "91de161bc8c886dde3fdb51dd7364c2990063669ad78281af9dec63f9380c3d9"
+    },
+    {
+      "path": "results/graph-performance-before-runtime-source/summary.json",
+      "sha256": "1f29144f073e7edcfd74e0b1122e0959a12ccd842960621e2af9537e07b37622"
+    },
+    {
+      "path": "results/graph-performance-after-runtime-source/summary.json",
+      "sha256": "6834e46f4687c6619338f80eeadeb48e6f6ef1daebcadba0041717158e171e3d"
+    },
+    {
+      "path": "results/api-graph-latency/summary.json",
+      "sha256": "5d47f165f8537a06382566bba077b4597716cc1bc6ebb7260025674028c0a6d7"
+    },
+    {
+      "path": "results/reasoning-benchmark.json",
+      "sha256": "48adde320a78a96af15f847158bbd18fe46df9cf99cf922db60176e35d94090f"
+    },
+    {
+      "path": "results/reasoning-benchmark-294.json",
+      "sha256": "19f1cd488f85a06dd71cc1dd9b1eacded0b481c1f776f9e00f3b577d0764a6c3"
+    }
+  ]
+}

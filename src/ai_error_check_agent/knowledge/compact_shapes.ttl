@@ -18,3 +18,18 @@ c:ReadShape a sh:NodeShape ; sh:targetClass c:SourceRead ;
 c:CandidateShape a sh:NodeShape ; sh:targetClass c:Candidate ;
  sh:property [ sh:path c:input ; sh:minCount 3 ; sh:maxCount 3 ; sh:class c:Fact ] ;
  sh:property [ sh:path c:rule ; sh:hasValue "observed-file-read.v1" ; sh:maxCount 1 ] .
+c:ArchiveFactShape a sh:NodeShape ; sh:targetClass c:ArchiveFact ;
+ sh:property [ sh:path c:scope ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:target ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:repoPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path c:archiveHash ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^[a-f0-9]{64}$" ] .
+c:CopyCoverageShape a sh:NodeShape ; sh:targetClass c:CopyCoverage ;
+ sh:property [ sh:path c:evidence ; sh:minCount 1 ; sh:class c:Evidence ] ;
+ sh:property [ sh:path c:omitted ; sh:hasValue true ; sh:maxCount 1 ] .
+c:RepositoryEntryShape a sh:NodeShape ; sh:targetClass c:RepositoryEntry ;
+ sh:property [ sh:path c:regular ; sh:hasValue true ; sh:maxCount 1 ] .
+c:IgnorePolicyShape a sh:NodeShape ; sh:targetClass c:IgnorePolicy ;
+ sh:property [ sh:path c:allows ; sh:hasValue true ; sh:maxCount 1 ] .
+c:PackagingCandidateShape a sh:NodeShape ; sh:targetClass c:PackagingCandidate ;
+ sh:property [ sh:path c:input ; sh:minCount 4 ; sh:maxCount 4 ] ;
+ sh:property [ sh:path c:rule ; sh:hasValue "docker-copy-omission.v1" ; sh:maxCount 1 ] .

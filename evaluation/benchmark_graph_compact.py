@@ -30,7 +30,7 @@ def summary(rows, metadata):
     groups = {}
     for subset in ("all", "compact_eligible", "fallback_controls"):
         groups[subset] = {}
-        for mode in MODES:
+        for mode in metadata.get("modes", MODES):
             selected = [
                 r
                 for r in rows
@@ -76,6 +76,7 @@ async def benchmark(args):
         "reasoning_effort": profile.reasoning_effort,
         "max_output_tokens": profile.max_output_tokens,
         "requested_tier": profile.service_tier,
+        "modes": list(args.modes),
         "note": dataset["note"],
         "semantic_review": "pending; structural/status checks are NOT diagnosis accuracy",
         "code_sha256": {
@@ -99,7 +100,7 @@ async def benchmark(args):
     rows, calls_started = [], 0
     for case_index, case in enumerate(dataset["cases"][: args.limit]):
         blob = fixture_archive(case)
-        modes = MODES if case_index % 2 == 0 else tuple(reversed(MODES))
+        modes = args.modes if case_index % 2 == 0 else tuple(reversed(args.modes))
         for mode in modes:
             captures, runtimes = [], []
 
@@ -207,6 +208,7 @@ def main():
     )
     parser.add_argument("--limit", type=int, choices=range(1, 9), default=8)
     parser.add_argument("--service-tier", choices=("default", "fast", "priority"))
+    parser.add_argument("--modes", nargs="+", choices=MODES, default=MODES)
     raise SystemExit(asyncio.run(benchmark(parser.parse_args())))
 
 

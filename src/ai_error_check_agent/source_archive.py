@@ -172,7 +172,7 @@ def member_path(name):
     return name
 
 
-def read_archive(blob, source, requests, bundle, policy):
+def read_archive(blob, source, requests, bundle, policy, deployment_context=None):
     """Decompress under a hard byte bound, then read only chosen regular UTF-8 files."""
     limits = []
     try:
@@ -188,7 +188,7 @@ def read_archive(blob, source, requests, bundle, policy):
                     expanded.write(chunk)
             expanded.seek(0)
             with tarfile.open(fileobj=expanded, mode="r:") as archive:
-                members, seen = [], set()
+                members, seen, directories = [], set(), set()
                 skipped_special = False
                 for count, member in enumerate(archive, 1):
                     if count > policy.max_members:
@@ -202,6 +202,7 @@ def read_archive(blob, source, requests, bundle, policy):
                         raise DiagnosisError("UNSAFE_ARCHIVE", "압축 파일에 중복 경로가 있습니다.")
                     seen.add(name)
                     if member.isdir():
+                        directories.add(name)
                         continue
                     if not member.isfile() or member.issparse():
                         skipped_special = True
@@ -238,6 +239,37 @@ def read_archive(blob, source, requests, bundle, policy):
                         "SOURCE_FILES_UNAVAILABLE",
                         "프로젝트 경로에 읽을 수 있는 소스 파일이 없습니다.",
                     )
+                if deployment_context is not None:
+                    # Internal, request-local inventory. Do not read data-file contents
+                    # or expose the repository listing to the model/public response.
+                    deployment_context.update(
+                        archive_sha256=hashlib.sha256(blob).hexdigest(),
+                        regular_files=sorted(available),
+                        special_files_skipped=skipped_special
+                        or any(
+                            prefix + root + path in directories
+                            for path in ("Dockerfile", ".dockerignore", "Dockerfile.dockerignore")
+                        ),
+                        root_directory=source.root_directory,
+                    )
+                    ignore = (
+                        "Dockerfile.dockerignore"
+                        if "Dockerfile.dockerignore" in available
+                        else ".dockerignore"
+                    )
+                    deployment_context["ignore_path"] = ignore
+                    deployment_context["ignore_present"] = ignore in available
+                    requests = list(requests) + [
+                        {
+                            "path": path,
+                            "start_line": 1,
+                            "end_line": 120,
+                            "reason": "파일 공급 경로와 Docker COPY·제외 규칙을 대조합니다.",
+                            "evidence_ids": requests[0]["evidence_ids"],
+                        }
+                        for path in ("Dockerfile", ignore)
+                        if path in available
+                    ]
                 selected = []
                 for request in requests:
                     path = request["path"]
@@ -289,6 +321,10 @@ def read_archive(blob, source, requests, bundle, policy):
                     if physical[-1] == "":
                         physical.pop()
                     count = len(physical)
+                    if deployment_context is not None and count == 0 and path == ignore:
+                        files.append(SourceFile(path=path, content=content))
+                        deployment_context["empty_ignore"] = True
+                        continue
                     if request["start_line"] > count:
                         limits.append(f"{path}: 요청 시작 줄이 실제 파일 범위를 초과합니다.")
                         continue
@@ -320,8 +356,18 @@ class ArchiveLoader:
         self._blob = None
         self._download_error = None
         self.timings = {"download_ms": 0, "read_ms": 0, "downloads": 0}
+        self.deployment_context = None
 
     async def __call__(self, requests, bundle):
+        return await self._load(requests, bundle)
+
+    async def load_deployment_context(self, requests, bundle):
+        context = {}
+        result = await self._load(requests, bundle, context)
+        self.deployment_context = context
+        return result
+
+    async def _load(self, requests, bundle, context=None):
         if self._download_error is not None:
             raise self._download_error
         if self._blob is None:
@@ -339,7 +385,7 @@ class ArchiveLoader:
         started = time.monotonic()
         try:
             snapshot, ranges, limits, digest = await asyncio.to_thread(
-                read_archive, self._blob, self.source, requests, bundle, self.policy
+                read_archive, self._blob, self.source, requests, bundle, self.policy, context
             )
         finally:
             self.timings["read_ms"] += round((time.monotonic() - started) * 1000)

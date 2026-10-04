@@ -1,0 +1,15 @@
+PREFIX c: <urn:iris:compact:v1:>
+CONSTRUCT {
+ ?packaging a c:PackagingCandidate ; c:input ?read, ?entry, ?copy, ?ignore ;
+ c:rule "docker-copy-omission.v1" ; c:scope ?scope ; c:target ?target ; c:repoPath ?path .
+}
+WHERE {
+ ?read a c:Candidate ; c:scope ?scope ; c:target ?target .
+ ?entry a c:RepositoryEntry ; c:scope ?scope ; c:target ?target ;
+   c:repoPath ?path ; c:archiveHash ?hash ; c:regular true .
+ ?copy a c:CopyCoverage ; c:scope ?scope ; c:target ?target ;
+   c:repoPath ?path ; c:archiveHash ?hash ; c:omitted true .
+ ?ignore a c:IgnorePolicy ; c:scope ?scope ; c:target ?target ;
+   c:repoPath ?path ; c:archiveHash ?hash ; c:allows true .
+ BIND(IRI(CONCAT(STR(?read), "/packaging")) AS ?packaging)
+}

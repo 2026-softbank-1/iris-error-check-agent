@@ -202,6 +202,7 @@ async def diagnose_with_source(
     prefetched = None
     preliminary_stages = []
     compact_accepted = False
+    deployment_context = None
     route_reason = "standard" if settings.mode == "standard" else "no_safe_candidate"
     request, snapshot = payload.diagnosis, payload.source_snapshot
     index = source_index(snapshot)
@@ -221,13 +222,44 @@ async def diagnose_with_source(
                 prefetch_index, prefetch_limits = index, []
                 try:
                     if archive_loader is not None:
-                        prefetch_snapshot, requests, prefetch_limits = await archive_loader(
+                        loader = archive_loader
+                        if settings.mode == "graph_compact" and hasattr(
+                            loader, "load_deployment_context"
+                        ):
+                            loader = archive_loader.load_deployment_context
+                        prefetch_snapshot, loaded_requests, prefetch_limits = await loader(
                             requests, bundle
                         )
                         prefetch_index = source_index(prefetch_snapshot)
+                        requests = [
+                            item for item in loaded_requests if item["path"] == requests[0]["path"]
+                        ]
+                        deployment_context = getattr(archive_loader, "deployment_context", None)
                     requests = complete_ranges(prefetch_index, requests)
+                    if requests and settings.mode == "graph_compact":
+                        for path in ("Dockerfile", "Dockerfile.dockerignore", ".dockerignore"):
+                            item = prefetch_index.get(path)
+                            if item and len(item["lines"]) > 120:
+                                prefetch_limits.append(
+                                    f"{path}: 전체 파일이 120줄을 초과하여 배포 추론에서 제외했습니다."
+                                )
+                            if item and 1 <= len(item["lines"]) <= 120:
+                                requests.append(
+                                    {
+                                        **requests[0],
+                                        "path": path,
+                                        "start_line": 1,
+                                        "end_line": len(item["lines"]),
+                                        "reason": "Docker COPY·파일 제외 규칙을 대조합니다.",
+                                    }
+                                )
                     evidence, ranges, limits = select_source(prefetch_index, requests)
-                    if evidence and len(ranges) == len(requests):
+                    if evidence and ranges and ranges[0]["path"] == requests[0]["path"]:
+                        if deployment_context is not None:
+                            deployment_context["complete_paths"] = [r["path"] for r in ranges]
+                            deployment_context["masked_paths"] = [
+                                r["path"] for r in ranges if r["masked"]
+                            ]
                         prefetched = (requests, evidence, ranges, prefetch_limits + limits)
                         route_reason = "complete_stack_source"
                 except DiagnosisError:
@@ -274,7 +306,9 @@ async def diagnose_with_source(
         packet = None
         if prefetched and settings.mode == "graph_compact":
             service = compact_service or CompactService()
-            packet, compact_report = await service.prepare(request, bundle, prefetched[1])
+            packet, compact_report = await service.prepare(
+                request, bundle, prefetched[1], deployment_context
+            )
             reasoning_reports.append(compact_report)
             logger = logging.getLogger(__name__)
             logger.info(
@@ -409,7 +443,7 @@ async def diagnose_with_source(
         )
         source["limitations"].extend(limits)
         source["limitations"].append(
-            "스택의 첫 애플리케이션 파일만 사전 확인했습니다. 다른 파일·배포 설정은 미확인입니다."
+            "사전 선택한 파일과 읽기 범위만 확인했습니다. 실제 빌드 문맥·이미지·마운트 및 데이터 공급 계약은 미확인입니다."
         )
         if archive_loader is not None:
             source["archive_sha256"] = getattr(archive_loader, "archive_sha256", None)

@@ -13,6 +13,7 @@ from importlib.resources import files
 
 from ..diagnosis_routing import FRAME, MISSING_FILE, candidate_ranges
 from .node_source import file_read
+from .packaging import prove_copy_omission
 
 
 @lru_cache(maxsize=1)
@@ -27,7 +28,9 @@ def resources():
         Namespace("urn:iris:compact:v1:"),
         Graph().parse(data=shapes, format="turtle"),
         prepareQuery(rule),
-        hashlib.sha256((shapes + rule).encode()).hexdigest(),
+        hashlib.sha256(
+            (shapes + rule + root.joinpath("rules/compact_docker_copy.rq").read_text()).encode()
+        ).hexdigest(),
     )
 
 
@@ -47,16 +50,26 @@ def validate(graph, shapes):
         raise ValueError("compact_graph_invalid")
 
 
-def build(request, bundle, source_lines):
+@lru_cache(maxsize=1)
+def packaging_query():
+    from rdflib.plugins.sparql import prepareQuery
+
+    return prepareQuery(
+        files("ai_error_check_agent.knowledge").joinpath("rules/compact_docker_copy.rq").read_text()
+    )
+
+
+def build(request, bundle, source_lines, deployment_context=None):
     started = time.perf_counter()
     candidates = candidate_ranges(bundle)
     if not candidates or not source_lines:
         return None
     selected = candidates[0]
-    source_path = source_lines[0]["path"]
-    if selected["path"] != source_path or any(r["path"] != source_path for r in source_lines):
-        return None
-    if [r["line"] for r in source_lines] != list(range(1, len(source_lines) + 1)):
+    source_path = selected["path"]
+    primary_lines = [r for r in source_lines if r["path"] == source_path]
+    if not primary_lines or [r["line"] for r in primary_lines] != list(
+        range(1, len(primary_lines) + 1)
+    ):
         return None
     by_id = {line.id: line for line in bundle.lines}
     failure_id, frame_id = selected["evidence_ids"]
@@ -64,7 +77,7 @@ def build(request, bundle, source_lines):
     target = MISSING_FILE.search(failure.text)[1]
     match = FRAME.fullmatch(frame.text)
     runtime_path, number = match[1].removeprefix("file://"), int(match[2])
-    read = file_read(source_lines, runtime_path, number, target)
+    read = file_read(primary_lines, runtime_path, number, target)
     if read is None:
         return None
 
@@ -134,6 +147,43 @@ def build(request, bundle, source_lines):
         "source_evidence_ids": [i for i in ids if i.startswith("SC")],
         "claim": "로그의 ENOENT 대상과 스택 위치의 소스 읽기 경로가 일치한다. 배포상 원인은 미확정이다.",
     }
+    packaging = prove_copy_omission(
+        source_lines, deployment_context, source_path, runtime_path, target
+    )
+    if packaging:
+        nodes = []
+        for name, kind, predicate, refs in (
+            ("entry", c.RepositoryEntry, c.regular, []),
+            ("copy", c.CopyCoverage, c.omitted, packaging["source_evidence_ids"]),
+            ("ignore", c.IgnorePolicy, c.allows, packaging["ignore_evidence_ids"]),
+        ):
+            node = URIRef(base + name)
+            nodes.append(node)
+            for p, v in (
+                (RDF.type, c.ArchiveFact),
+                (RDF.type, kind),
+                (c.scope, Literal(scope)),
+                (c.target, Literal(target)),
+                (c.repoPath, Literal(packaging["repo_path"])),
+                (c.archiveHash, Literal(packaging["archive_sha256"])),
+                (predicate, Literal(True)),
+            ):
+                graph.add((node, p, v))
+            for ref in refs:
+                evidence = URIRef(base + ref)
+                graph.add((evidence, RDF.type, c.Evidence))
+                graph.add((evidence, c.id, Literal(ref)))
+                graph.add((node, c.evidence, evidence))
+        validate(graph, shapes)
+        for triple in graph.query(packaging_query()).graph:
+            graph.add(triple)
+        validate(graph, shapes)
+        derived_packaging = list(graph.subjects(RDF.type, c.PackagingCandidate))
+        if len(derived_packaging) != 1 or set(graph.objects(derived_packaging[0], c.input)) != {
+            candidate,
+            *nodes,
+        }:
+            return None
     # Keep EVERY distinct text and all occurrence IDs/timing. Only byte-identical
     # log text is grouped; no unrecognized or counter evidence is pruned.
     grouped = {}
@@ -158,14 +208,33 @@ def build(request, bundle, source_lines):
         "logs": list(grouped.values()),
         "code": {
             "path": source_path,
-            "lines": [[r["id"], r["line"], r["text"]] for r in source_lines],
+            "lines": [[r["id"], r["line"], r["text"]] for r in primary_lines],
         },
         "limitations": list(bundle.limitations)
         + [
             "소스 스냅샷과 실제 실행 커밋의 일치를 독립 검증하지 않았다.",
-            "첫 애플리케이션 파일만 확인했다. 패키징·마운트·파일 공급·영속성 계약은 미확인이다.",
+            "제공된 소스 범위만 확인했다. 실제 빌드 문맥·마운트·파일 공급·영속성 계약은 미확인이다.",
         ],
     }
+    additional_paths = list(
+        dict.fromkeys(r["path"] for r in source_lines if r["path"] != source_path)
+    )
+    if additional_paths:
+        packet["deployment_code"] = [
+            {
+                "path": path,
+                "lines": [
+                    [r["id"], r["line"], r["text"]] for r in source_lines if r["path"] == path
+                ],
+            }
+            for path in additional_paths
+        ]
+    if packaging:
+        packet["packaging_candidate"] = packaging
+    elif additional_paths:
+        # Broader context exists but the restricted rules cannot justify a fixed
+        # packaging plan. Let the full source stage reason about those files.
+        return None
     ttl = graph.serialize(format="turtle")
     return {
         "packet": packet,
@@ -177,11 +246,12 @@ def build(request, bundle, source_lines):
             "resources_sha256": resource_hash,
             "graph_ttl": ttl,
             "candidate": candidate_data,
+            "packaging_candidate": packaging,
             "metrics": {
                 "conforms": True,
                 "triples": len(graph),
-                "fact_count": 3,
-                "candidate_count": 1,
+                "fact_count": 6 if packaging else 3,
+                "candidate_count": 2 if packaging else 1,
                 "total_ms": round((time.perf_counter() - started) * 1000, 3),
                 "original_log_lines": len(bundle.lines),
                 "distinct_log_lines": len(grouped),
